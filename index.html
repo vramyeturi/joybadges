@@ -1,10 +1,397 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Simple Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Tambola Ticket Generator</title>
+    <!-- సరైన html2canvas CDN లింక్ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --secondary-color: #a29bfe;
+            --success-color: #2ecc71;
+            --whatsapp-color: #25D366;
+            --bg-dark: #2d3436;
+            --ticket-bg: #ffffff;
+            --border-color: #dfe6e9;
+            --text-main: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--bg-dark);
+            margin-bottom: 20px;
+            font-size: 2.3rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .input-panel {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: 2px solid #b2bec3;
+            border-radius: 25px;
+            width: 280px;
+            outline: none;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .input-group:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(108, 92, 231, 0.2);
+        }
+
+        .controls-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 35px;
+        }
+
+        .btn {
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+
+        .btn:active { transform: translateY(1px); }
+        .btn-generate { background-color: var(--primary-color); }
+        .btn-download { background-color: var(--success-color); }
+        .btn-whatsapp { background-color: var(--whatsapp-color); }
+
+        #ticketContainer {
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .ticket-wrapper {
+            background: var(--ticket-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-left: 8px solid var(--primary-color);
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px dashed var(--secondary-color);
+            padding-bottom: 10px;
+            gap: 40px;
+        }
+
+        .meta-details {
+            text-align: left;
+        }
+
+        .ticket-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            letter-spacing: 2px;
+            margin: 0 0 4px 0;
+        }
+
+        .group-tag {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #636e72;
+            display: block;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ticket-id {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            background: #f1f2f6;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ticket-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 6px;
+            background-color: var(--border-color);
+            padding: 6px;
+            border-radius: 8px;
+        }
+
+        .cell {
+            background-color: #ffffff;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-main);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .cell.empty {
+            background-color: #f8f9fa;
+            color: transparent;
+        }
+
+        .cell:not(.empty) { cursor: pointer; }
+        .cell:not(.empty).marked {
+            background-color: var(--secondary-color);
+            color: white;
+            transform: scale(0.95);
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 650px) {
+            .cell {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+            .ticket-wrapper { padding: 15px; }
+            .controls-panel {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 0 20px;
+            }
+            .btn { justify-content: center; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to My Website!</h1>
-    <p>This site is hosted for free on GitHub Pages.</p>
+
+    <div class="container">
+        <h1>Premium Tambola Ticket</h1>
+       
+        <div class="input-panel">
+            <input type="text" id="groupNameInput" class="input-group" placeholder="Enter Event/Group Name" maxlength="25" oninput="updateLiveGroupName()">
+        </div>
+
+        <div class="controls-panel">
+            <button class="btn btn-generate" onclick="generateNewTicket()">🔄 Generate Ticket</button>
+            <button class="btn btn-download" onclick="downloadTicketImage()">📥 Download Image</button>
+            <button class="btn btn-whatsapp" onclick="shareToWhatsApp()">💬 WhatsApp Share</button>
+        </div>
+       
+        <div id="ticketContainer"></div>
+    </div>
+    
+    <script>
+        let currentTicketId = "";
+
+        function generateTambolaTicketData() {
+            let ticket = Array(3).fill().map(() => Array(9).fill(0));
+            let columns = Array(9).fill().map((_, i) => {
+                let min = i === 0 ? 1 : i * 10;
+                let max = i === 8 ? 90 : (i * 10) + 9;
+                let nums = [];
+                for (let n = min; n <= max; n++) nums.push(n);
+                return nums;
+            });
+
+            // లోపం సరిదిద్దబడింది: array indices జోడించబడ్డాయి
+            let colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+            colIndices.sort(() => Math.random() - 0.5);
+           
+            colIndices.forEach((col, idx) => {
+                let row = idx % 3;
+                let randIdx = Math.floor(Math.random() * columns[col].length);
+                ticket[row][col] = columns[col].splice(randIdx, 1)[0];
+            });
+
+            while (getTicketNumbersCount(ticket) < 15) {
+                let row = Math.floor(Math.random() * 3);
+                let col = Math.floor(Math.random() * 9);
+
+                if (getRowNumbersCount(ticket[row]) < 5 && ticket[row][col] === 0 && columns[col].length > 0) {
+                    let randIdx = Math.floor(Math.random() * columns[col].length);
+                    ticket[row][col] = columns[col].splice(randIdx, 1)[0];
+                }
+            }
+
+            for (let c = 0; c < 9; c++) {
+                let colActiveValues = [];
+                for (let r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) colActiveValues.push(ticket[r][c]);
+                }
+                colActiveValues.sort((a, b) => a - b);
+               
+                let activeIdx = 0;
+                for (let r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) {
+                        ticket[r][c] = colActiveValues[activeIdx++];
+                    }
+                }
+            }
+            return ticket;
+        }
+
+        function getRowNumbersCount(row) {
+            return row.filter(val => val !== 0).length;
+        }
+
+        function getTicketNumbersCount(ticket) {
+            return ticket.reduce((acc, row) => acc + getRowNumbersCount(row), 0);
+        }
+
+        function renderTicket(ticketData) {
+            const container = document.getElementById('ticketContainer');
+            container.innerHTML = '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'ticket-wrapper';
+            wrapper.id = 'actualTicket';
+
+            const header = document.createElement('div');
+            header.className = 'ticket-header';
+           
+            const meta = document.createElement('div');
+            meta.className = 'meta-details';
+
+            const title = document.createElement('h2');
+            title.className = 'ticket-title';
+            title.innerText = 'TAMBOLA';
+
+            const groupTag = document.createElement('span');
+            groupTag.className = 'group-tag';
+            groupTag.id = 'ticketGroupDisplay';
+           
+            const enteredName = document.getElementById('groupNameInput').value.trim();
+            groupTag.innerText = enteredName ? enteredName : "Family & Friends Fun";
+
+            meta.appendChild(title);
+            meta.appendChild(groupTag);
+
+            currentTicketId = 'TICK-' + Math.floor(100000 + Math.random() * 900000);
+            const idTag = document.createElement('span');
+            idTag.className = 'ticket-id';
+            idTag.innerText = currentTicketId;
+
+            header.appendChild(meta);
+            header.appendChild(idTag);
+            wrapper.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'ticket-grid';
+
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cellValue = ticketData[r][c];
+                    const cell = document.createElement('div');
+                   
+                    if (cellValue === 0) {
+                        cell.className = 'cell empty';
+                        cell.innerHTML = '&nbsp;';
+                    } else {
+                        cell.className = 'cell';
+                        cell.innerText = cellValue;
+                        cell.onclick = function() {
+                            this.classList.toggle('marked');
+                        };
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+            wrapper.appendChild(grid);
+            container.appendChild(wrapper);
+        }
+
+        function updateLiveGroupName() {
+            const display = document.getElementById('ticketGroupDisplay');
+            const inputVal = document.getElementById('groupNameInput').value.trim();
+            if(display) {
+                display.innerText = inputVal ? inputVal : "Family & Friends Fun";
+            }
+        }
+
+        function generateNewTicket() {
+            const data = generateTambolaTicketData();
+            renderTicket(data);
+        }
+
+        function downloadTicketImage() {
+            const ticketElement = document.getElementById('actualTicket');
+            if (!ticketElement) return;
+
+            html2canvas(ticketElement, {
+                scale: 2,
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                const imageURI = canvas.toDataURL('image/png');
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = imageURI;
+                downloadAnchor.download = `${currentTicketId}.png`;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                document.body.removeChild(downloadAnchor);
+            }).catch(err => {
+                console.error("Canvas export failed: ", err);
+                alert("Could not process image generation.");
+            });
+        }
+
+        function shareToWhatsApp() {
+            const groupName = document.getElementById('groupNameInput').value.trim() || "Family & Friends Fun";
+            const customMessageText = `Hey! Join our Tambola game for "${groupName}". Here is my Ticket ID: ${currentTicketId}. Let's play! 🎉`;
+            const encodedTextPayload = encodeURIComponent(customMessageText);
+            // వాట్సాప్ URL సరిదిద్దబడింది
+            const targetWhatsAppURL = `https://api.whatsapp.com/send?text=${encodedTextPayload}`;
+           
+            window.open(targetWhatsAppURL, '_blank');
+        }
+
+        window.onload = generateNewTicket;
+    </script>
 </body>
 </html>
