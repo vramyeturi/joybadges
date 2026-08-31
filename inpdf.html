@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Tambola PDF Generator</title>
+    <style>
+        :root {
+            --primary: #4b6584;
+            --accent: #2d98da;
+            --border-color: #778ca3;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f1f2f6;
+        }
+
+        /* Screen UI Controls */
+        .no-print {
+            max-width: 700px;
+            margin: 0 auto 30px auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .input-box {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin: 5px;
+        }
+
+        .btn-pdf {
+            background: #eb3b5a;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-pdf:hover { background: #fc5c65; }
+
+        /* Bulk Grid Setup */
+        #printArea {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .ticket-wrapper {
+            background: #ffffff;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px dashed #a5b1c2;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+        }
+
+        .ticket-title {
+            margin: 0;
+            font-size: 1rem;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .ticket-id {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #778ca3;
+        }
+
+        .ticket-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1.5px solid #2c3e50;
+            background: #2c3e50;
+            gap: 1px;
+        }
+
+        .cell {
+            background: #ffffff;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .cell.empty { background: #f8f9fa; }
+
+        /* Print Specific Optimization for PDF */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            #printArea {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                width: 100%;
+                max-width: 100%;
+            }
+            .ticket-wrapper {
+                border: 1.5px solid #000;
+                box-shadow: none;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <h2>Tambola Bulk PDF Generator</h2>
+        <div>
+            <input type="text" id="groupName" class="input-box" placeholder="ఈవెంట్ / గ్రూప్ పేరు" value="Family Tambola Night">
+            <input type="number" id="ticketCount" class="input-box" placeholder="టికెట్ల సంఖ్య" value="100" min="1" max="500">
+        </div>
+        <button class="btn-pdf" onclick="generateBulkTicketsAndPrint()">🖨️ Generate & Download PDF</button>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script>
+        function generateTambolaTicketData() {
+            let ticket = Array(3).fill().map(() => Array(9).fill(0));
+            let columns = Array(9).fill().map((_, i) => {
+                let min = i === 0 ? 1 : i * 10;
+                let max = i === 8 ? 90 : (i * 10) + 9;
+                let nums = [];
+                for (let n = min; n <= max; n++) nums.push(n);
+                return nums;
+            });
+
+            let colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+            colIndices.sort(() => Math.random() - 0.5);
+
+            colIndices.forEach((col, idx) => {
+                let row = idx % 3;
+                let randIdx = Math.floor(Math.random() * columns[col].length);
+                ticket[row][col] = columns[col].splice(randIdx, 1)[0];
+            });
+
+            while (getTicketNumbersCount(ticket) < 15) {
+                let row = Math.floor(Math.random() * 3);
+                let col = Math.floor(Math.random() * 9);
+
+                if (getRowNumbersCount(ticket[row]) < 5 && ticket[row][col] === 0 && columns[col].length > 0) {
+                    let randIdx = Math.floor(Math.random() * columns[col].length);
+                    ticket[row][col] = columns[col].splice(randIdx, 1)[0];
+                }
+            }
+
+            for (let c = 0; c < 9; c++) {
+                let colActiveValues = [];
+                for (let r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) colActiveValues.push(ticket[r][c]);
+                }
+                colActiveValues.sort((a, b) => a - b);
+
+                let activeIdx = 0;
+                for (let r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) {
+                        ticket[r][c] = colActiveValues[activeIdx++];
+                    }
+                }
+            }
+            return ticket;
+        }
+
+        function getRowNumbersCount(row) {
+            return row.filter(val => val !== 0).length;
+        }
+
+        function getTicketNumbersCount(ticket) {
+            return ticket.reduce((acc, row) => acc + getRowNumbersCount(row), 0);
+        }
+
+        function generateBulkTicketsAndPrint() {
+            const count = parseInt(document.getElementById('ticketCount').value) || 10;
+            const groupName = document.getElementById('groupName').value.trim() || "Tambola Game";
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+
+            for (let i = 1; i <= count; i++) {
+                const ticketData = generateTambolaTicketData();
+                const ticketWrapper = document.createElement('div');
+                ticketWrapper.className = 'ticket-wrapper';
+
+                const header = `
+                    <div class="ticket-header">
+                        <span class="ticket-title">${groupName}</span>
+                        <span class="ticket-id">#${String(i).padStart(3, '0')}</span>
+                    </div>
+                `;
+
+                let gridHtml = '<div class="ticket-grid">';
+                for (let r = 0; r < 3; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        const val = ticketData[r][c];
+                        gridHtml += `<div class="cell ${val === 0 ? 'empty' : ''}">${val === 0 ? '' : val}</div>`;
+                    }
+                }
+                gridHtml += '</div>';
+
+                ticketWrapper.innerHTML = header + gridHtml;
+                printArea.appendChild(ticketWrapper);
+            }
+
+            // టికెట్లు రెండర్ అయిన వెంటనే ప్రింట్ డైలాగ్ ఓపెన్ అవుతుంది
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
