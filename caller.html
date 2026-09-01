@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambola Number Caller</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --accent: #ff7675;
+            --called-bg: #fdcb6e;
+            --called-text: #2d3436;
+            --bg-gradient: linear-gradient(135deg, #1e272e 0%, #2f3542 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 750px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: clamp(1.4rem, 4vw, 2rem);
+            color: #f1f2f6;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        /* ప్రస్తుత నెంబర్ డిస్‌ప్లే బాక్స్ */
+        .display-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .main-number-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .current-number {
+            font-size: clamp(3.2rem, 12vw, 5rem);
+            font-weight: 800;
+            color: #ffeaa7;
+            text-shadow: 0 0 20px rgba(255, 234, 167, 0.6);
+            height: clamp(70px, 15vw, 100px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .current-number.flash {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            color: #a4b0be;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* కంట్రోల్ బటన్లు */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-size: clamp(0.85rem, 2.5vw, 1rem);
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            color: white;
+        }
+
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-next { background-color: var(--primary); font-size: 1.1rem; padding: 12px 26px; }
+        .btn-download { background-color: #00b894; }
+        .btn-reset { background-color: #d63031; }
+        .btn-mute { background-color: #636e72; }
+        .btn-mute.active { background-color: #e17055; }
+
+        /* 1-90 బోర్డు డిజైన్ */
+        .board-wrapper {
+            background: #ffffff;
+            padding: clamp(10px, 3vw, 20px);
+            border-radius: 14px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .board-title {
+            color: #2d3436;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            width: 100%;
+        }
+
+        .board-cell {
+            background: #f1f2f6;
+            color: #747d8c;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+            font-weight: 700;
+            border-radius: 4px;
+            user-select: none;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .board-cell.called {
+            background: var(--called-bg);
+            color: var(--called-text);
+            box-shadow: inset 0 0 0 2px #e17055;
+            font-weight: 800;
+        }
+
+        .board-cell.last-called {
+            background: #e17055;
+            color: #ffffff;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); }
+            100% { transform: scale(1.05); }
+        }
+
+        @media (max-width: 480px) {
+            .board-grid { gap: 2px; }
+            .board-cell { border-radius: 2px; }
+            .btn-next { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎲 Tambola Number Caller</h1>
+
+        <div class="display-card">
+            <div class="main-number-box">
+                <span class="status-badge" id="statusText">Next Number</span>
+                <div class="current-number" id="currentNumber">--</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.9rem; color: #a4b0be;">Called Count</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #55efc4;" id="calledCount">0 / 90</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-next" id="nextBtn" onclick="drawNextNumber()">⚡ Next Number</button>
+            <button class="btn btn-download" onclick="downloadBoard()">📥 Download Board</button>
+            <button class="btn btn-mute" id="muteBtn" onclick="toggleMute()">🔊 Sound: ON</button>
+            <button class="btn btn-reset" onclick="resetGame()">🔄 Reset</button>
+        </div>
+
+        <div class="board-wrapper" id="boardWrapper">
+            <div class="board-title">
+                <span>TAMBOLA BOARD</span>
+                <span id="boardTime" style="font-size: 0.8rem; color: #636e72;"></span>
+            </div>
+            <div class="board-grid" id="boardGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        let availableNumbers = [];
+        let calledNumbers = [];
+        let isMuted = false;
+        let isRolling = false;
+
+        // Web Audio API సౌండ్ జనరేటర్ (బాహ్య ఆడియో ఫైల్స్ అవసరం లేదు)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTickSound() {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.04);
+        }
+
+        function playBellSound() {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // డబుల్-టోన్ బెల్ ఎఫెక్ట్
+            [880, 1760].forEach((freq) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.2);
+            });
+        }
+
+        // బోర్డును 1-90 తో ఇనిషియలైజ్ చేయడం
+        function initBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 90; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'board-cell';
+                cell.id = `cell-${i}`;
+                cell.innerText = i;
+                grid.appendChild(cell);
+            }
+            availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
+            calledNumbers = [];
+            updateStats();
+        }
+
+        // తర్వాతి నెంబర్ ఎంచుకోవడం & ఫ్లాషింగ్ ఎఫెక్ట్
+        function drawNextNumber() {
+            if (isRolling || availableNumbers.length === 0) return;
+            
+            isRolling = true;
+            document.getElementById('nextBtn').disabled = true;
+            const statusText = document.getElementById('statusText');
+            const currentNumEl = document.getElementById('currentNumber');
+            statusText.innerText = "Selecting...";
+            currentNumEl.classList.add('flash');
+
+            let flashes = 0;
+            const maxFlashes = 20; // లాక్ అయ్యే ముందు ఎన్నిసార్లు ఫ్లాష్ కావాలి
+            const speed = 75; // మి.సె
+
+            const flashInterval = setInterval(() => {
+                const randomVisualNum = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+                currentNumEl.innerText = randomVisualNum;
+                playTickSound();
+                flashes++;
+
+                if (flashes >= maxFlashes) {
+                    clearInterval(flashInterval);
+                    finalizeNumber();
+                }
+            }, speed);
+        }
+
+        // నెంబర్ ఫ్రీజ్ చేసి బెల్ మోగించడం
+        function finalizeNumber() {
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const pickedNumber = availableNumbers.splice(randomIndex, 1)[0];
+            
+            // పాత లాస్ట్-కాల్డ్ స్టైల్ తీసివేయడం
+            if (calledNumbers.length > 0) {
+                const prevNum = calledNumbers[calledNumbers.length - 1];
+                const prevCell = document.getElementById(`cell-${prevNum}`);
+                prevCell.className = 'board-cell called';
+            }
+
+            calledNumbers.push(pickedNumber);
+
+            const currentNumEl = document.getElementById('currentNumber');
+            currentNumEl.classList.remove('flash');
+            currentNumEl.innerText = pickedNumber;
+            document.getElementById('statusText').innerText = "Current Number";
+
+            // బోర్డుపై సెల్‌ను హైలైట్ చేయడం
+            const cell = document.getElementById(`cell-${pickedNumber}`);
+            cell.className = 'board-cell called last-called';
+
+            playBellSound();
+            updateStats();
+
+            isRolling = false;
+            document.getElementById('nextBtn').disabled = availableNumbers.length === 0;
+
+            if (availableNumbers.length === 0) {
+                document.getElementById('statusText').innerText = "Game Over!";
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('calledCount').innerText = `${calledNumbers.length} / 90`;
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteBtn = document.getElementById('muteBtn');
+            if (isMuted) {
+                muteBtn.innerText = "🔇 Sound: OFF";
+                muteBtn.classList.add('active');
+            } else {
+                muteBtn.innerText = "🔊 Sound: ON";
+                muteBtn.classList.remove('active');
+            }
+        }
+
+        function resetGame() {
+            if (calledNumbers.length > 0 && !confirm("ఆటను రీసెట్ చేసి కొత్త గేమ్ ప్రారంభించాలనుకుంటున్నారా?")) {
+                return;
+            }
+            document.getElementById('currentNumber').innerText = "--";
+            document.getElementById('statusText').innerText = "Next Number";
+            document.getElementById('nextBtn').disabled = false;
+            initBoard();
+        }
+
+        function downloadBoard() {
+            const board = document.getElementById('boardWrapper');
+            document.getElementById('boardTime').innerText = new Date().toLocaleTimeString();
+
+            html2canvas(board, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `tambola-board-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                document.getElementById('boardTime').innerText = '';
+            });
+        }
+
+        window.onload = initBoard;
+    </script>
+</body>
+</html>
