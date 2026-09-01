@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambola Caller & Ticket Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --called-bg: #fff200;      /* కాల్ అయిన నెంబర్లకు పసుపు రంగు */
+            --called-text: #000000;
+            --current-bg: #00b894;     /* ప్రస్తుతం వచ్చిన నెంబర్‌కు గ్రీన్ రంగు */
+            --current-text: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #1e272e 0%, #2f3542 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        h1 {
+            font-size: clamp(1.4rem, 4vw, 1.8rem);
+            color: #f1f2f6;
+            text-align: center;
+        }
+
+        /* ప్రస్తుత నెంబర్ డిస్‌ప్లే కార్డ్ */
+        .display-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .main-number-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .current-number {
+            font-size: clamp(3rem, 10vw, 4.5rem);
+            font-weight: 800;
+            color: #ffeaa7;
+            text-shadow: 0 0 15px rgba(255, 234, 167, 0.6);
+            height: clamp(60px, 12vw, 80px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .current-number.flash {
+            color: #ff7675;
+            transform: scale(1.1);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            color: #a4b0be;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 1-90 బోర్డు డిజైన్ */
+        .board-wrapper {
+            background: #ffffff;
+            padding: clamp(10px, 2.5vw, 18px);
+            border-radius: 14px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .board-header {
+            color: #2d3436;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 2px solid #dfe6e9;
+            padding-bottom: 6px;
+        }
+
+        .board-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #2d3436;
+        }
+
+        .board-meta {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #636e72;
+            display: flex;
+            gap: 12px;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            width: 100%;
+        }
+
+        /* సెల్ ఫాంట్ మరియు బ్యాక్‌గ్రౌండ్ కలర్స్ */
+        .board-cell {
+            background: #f1f2f6;
+            color: #2d3436;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 3.2vw, 1.6rem); /* పెద్ద ఫాంట్ */
+            font-weight: 800;
+            border-radius: 6px;
+            user-select: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .board-cell.called {
+            background: var(--called-bg) !important;
+            color: var(--called-text) !important;
+            border: 2px solid #e1b12c;
+        }
+
+        .board-cell.last-called {
+            background: var(--current-bg) !important;
+            color: var(--current-text) !important;
+            border: 2px solid #009432;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.96); }
+            100% { transform: scale(1.04); }
+        }
+
+        /* బటన్ల కంట్రోల్స్ సెక్షన్ */
+        .controls-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-next-container {
+            width: 100%;
+        }
+
+        .btn-next {
+            width: 100%;
+            background-color: var(--primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(108, 92, 231, 0.4);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-next:active { transform: scale(0.98); }
+        .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* మిగిలిన బటన్ల సమాన సైజు గ్రిడ్ */
+        .sub-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn-sub {
+            border: none;
+            padding: 10px 6px;
+            border-radius: 10px;
+            font-size: clamp(0.75rem, 2.2vw, 0.9rem);
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            width: 100%;
+            min-height: 44px;
+        }
+
+        .btn-sub:active { transform: scale(0.96); }
+        .btn-board-dl { background-color: #00b894; }
+        .btn-reset { background-color: #d63031; }
+        .btn-mute { background-color: #636e72; }
+        .btn-mute.active { background-color: #e17055; }
+        .btn-ticket-gen { background-color: #0984e3; }
+        .btn-ticket-dl { background-color: #00cec9; }
+        .btn-ticket-share { background-color: #25D366; }
+
+        /* టిక్కెట్ సెక్షన్ స్టైల్స్ */
+        .ticket-section {
+            width: 100%;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ticket-wrapper {
+            background: #ffffff;
+            padding: clamp(10px, 3vw, 20px);
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            border-left: 6px solid var(--primary);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 2px dashed #a29bfe;
+            padding-bottom: 6px;
+        }
+
+        .ticket-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 1.5px;
+        }
+
+        .ticket-id {
+            font-size: 0.85rem;
+            color: #2d3436;
+            background: #f1f2f6;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .ticket-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 3px;
+            background-color: #dfe6e9;
+            padding: 4px;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        .ticket-cell {
+            background-color: #ffffff;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.95rem, 3.2vw, 1.3rem);
+            font-weight: 800;
+            color: #2d3436;
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        .ticket-cell.empty {
+            background-color: #f8f9fa;
+            color: transparent;
+        }
+
+        .ticket-cell:not(.empty) { cursor: pointer; }
+        .ticket-cell:not(.empty).marked {
+            background-color: #a29bfe;
+            color: white;
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 500px) {
+            .sub-buttons-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .board-grid { gap: 2px; }
+            .board-cell { border-radius: 3px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎲 Tambola Caller & Ticket</h1>
+
+        <div class="display-card">
+            <div class="main-number-box">
+                <span class="status-badge" id="statusText">Next Number</span>
+                <div class="current-number" id="currentNumber">--</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.85rem; color: #a4b0be;">Called Count</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #55efc4;" id="calledCount">0 / 90</div>
+            </div>
+        </div>
+
+        <div class="board-wrapper" id="boardWrapper">
+            <div class="board-header">
+                <div class="board-title">TAMBOLA BOARD</div>
+                <div class="board-meta">
+                    <span id="playNumber">Play No: 1</span>
+                    <span id="liveDateTime">--:--:--</span>
+                </div>
+            </div>
+            <div class="board-grid" id="boardGrid"></div>
+        </div>
+
+        <div class="controls-wrapper">
+            <div class="btn-next-container">
+                <button class="btn-next" id="nextBtn" onclick="drawNextNumber()">⚡ NEXT NUMBER</button>
+            </div>
+
+            <div class="sub-buttons-grid">
+                <button class="btn-sub btn-board-dl" onclick="downloadBoard()">📥 Board Image</button>
+                <button class="btn-sub btn-mute" id="muteBtn" onclick="toggleMute()">🔊 Sound: ON</button>
+                <button class="btn-sub btn-reset" onclick="resetGame()">🔄 Reset Game</button>
+                <button class="btn-sub btn-ticket-gen" onclick="generateNewTicket()">🎟️ Gen Ticket</button>
+                <button class="btn-sub btn-ticket-dl" onclick="downloadTicketImage()">💾 Ticket Image</button>
+                <button class="btn-sub btn-ticket-share" onclick="shareToWhatsApp()">💬 Share Ticket</button>
+            </div>
+        </div>
+
+        <div class="ticket-section" id="ticketSection">
+            <div id="ticketContainer" style="width: 100%; display: flex; justify-content: center;"></div>
+        </div>
+    </div>
+
+    <script>
+        let availableNumbers = [];
+        let calledNumbers = [];
+        let isMuted = false;
+        let isRolling = false;
+        let playCount = 1;
+        let currentTicketId = "";
+
+        // Web Audio API సౌండ్ జనరేటర్
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTickSound() {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.03);
+        }
+
+        function playBellSound() {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            [880, 1760].forEach((freq) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.2);
+            });
+        }
+
+        // లైవ్ డేట్ & టైమ్ అప్‌డేట్
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('liveDateTime').innerText = `${dateStr} | ${timeStr}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // బోర్డు తయారీ
+        function initBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 90; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'board-cell';
+                cell.id = `cell-${i}`;
+                cell.innerText = i;
+                grid.appendChild(cell);
+            }
+            availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
+            calledNumbers = [];
+            document.getElementById('playNumber').innerText = `Play No: ${playCount}`;
+            updateStats();
+        }
+
+        // నెక్స్ట్ నెంబర్ ఫ్లాషింగ్
+        function drawNextNumber() {
+            if (isRolling || availableNumbers.length === 0) return;
+            
+            isRolling = true;
+            document.getElementById('nextBtn').disabled = true;
+            const statusText = document.getElementById('statusText');
+            const currentNumEl = document.getElementById('currentNumber');
+            statusText.innerText = "Selecting...";
+            currentNumEl.classList.add('flash');
+
+            let flashes = 0;
+            const maxFlashes = 18;
+            const speed = 70;
+
+            const flashInterval = setInterval(() => {
+                const randomVisualNum = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+                currentNumEl.innerText = randomVisualNum;
+                playTickSound();
+                flashes++;
+
+                if (flashes >= maxFlashes) {
+                    clearInterval(flashInterval);
+                    finalizeNumber();
+                }
+            }, speed);
+        }
+
+        // నెంబర్ ఫ్రీజ్ అవ్వడం (పసుపు & గ్రీన్ కలర్స్)
+        function finalizeNumber() {
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const pickedNumber = availableNumbers.splice(randomIndex, 1)[0];
+            
+            // పాత నెంబర్‌ను ఎల్లో (Called) కలర్‌కు మార్చడం
+            if (calledNumbers.length > 0) {
+                const prevNum = calledNumbers[calledNumbers.length - 1];
+                const prevCell = document.getElementById(`cell-${prevNum}`);
+                prevCell.className = 'board-cell called';
+            }
+
+            calledNumbers.push(pickedNumber);
+
+            const currentNumEl = document.getElementById('currentNumber');
+            currentNumEl.classList.remove('flash');
+            currentNumEl.innerText = pickedNumber;
+            document.getElementById('statusText').innerText = "Current Number";
+
+            // ప్రస్తుత నెంబర్‌ను గ్రీన్ (Current Cell) కలర్‌తో హైలైట్ చేయడం
+            const cell = document.getElementById(`cell-${pickedNumber}`);
+            cell.className = 'board-cell called last-called';
+
+            playBellSound();
+            updateStats();
+
+            isRolling = false;
+            document.getElementById('nextBtn').disabled = availableNumbers.length === 0;
+
+            if (availableNumbers.length === 0) {
+                document.getElementById('statusText').innerText = "Game Over!";
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('calledCount').innerText = `${calledNumbers.length} / 90`;
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteBtn = document.getElementById('muteBtn');
+            if (isMuted) {
+                muteBtn.innerText = "🔇 Sound: OFF";
+                muteBtn.classList.add('active');
+            } else {
+                muteBtn.innerText = "🔊 Sound: ON";
+                muteBtn.classList.remove('active');
+            }
+        }
+
+        function resetGame() {
+            if (calledNumbers.length > 0 && !confirm("ఆటను రీసెట్ చేసి కొత్త Play ప్రారంభించాలనుకుంటున్నారా?")) {
+                return;
+            }
+            playCount++;
+            document.getElementById('currentNumber').innerText = "--";
+            document.getElementById('statusText').innerText = "Next Number";
+            document.getElementById('nextBtn').disabled = false;
+            initBoard();
+        }
+
+        function downloadBoard() {
+            const board = document.getElementById('boardWrapper');
+            html2canvas(board, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Tambola-Board-Play-${playCount}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        /* ------------------ టిక్కెట్ జనరేటర్ లాజిక్ ------------------ */
+        function generateTambolaTicketData() {
+            let ticket = Array(3).fill().map(() => Array(9).fill(0));
+            let columns = Array(9).fill().map((_, i) => {
+                let min = i === 0 ? 1 : i * 10;
+                let max = i === 8 ? 90 : (i * 10) + 9;
+                let nums = [];
+                for (let n = min; n <= max; n++) nums.push(n);
+                return nums;
+            });
+
+            let colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - 0.5);
+           
+            colIndices.forEach((col, idx) => {
+                let row = idx % 3;
+                let randIdx = Math.floor(Math.random() * columns[col].length);
+                ticket[row][col] = columns[col].splice(randIdx, 1)[0];
+            });
+
+            while (ticket.reduce((acc, row) => acc + row.filter(v => v !== 0).length, 0) < 15) {
+                let row = Math.floor(Math.random() * 3);
+                let col = Math.floor(Math.random() * 9);
+
+                if (ticket[row].filter(v => v !== 0).length < 5 && ticket[row][col] === 0 && columns[col].length > 0) {
+                    let randIdx = Math.floor(Math.random() * columns[col].length);
+                    ticket[row][col] = columns[col].splice(randIdx, 1)[0];
+                }
+            }
+
+            for (let c = 0; c < 9; c++) {
+                let activeVals = [];
+                for (let r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) activeVals.push(ticket[r][c]);
+                }
+                activeVals.sort((a, b) => a - b);
+                let aIdx = 0;
+                for (let r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) ticket[r][c] = activeVals[aIdx++];
+                }
+            }
+            return ticket;
+        }
+
+        function renderTicket(ticketData) {
+            const container = document.getElementById('ticketContainer');
+            container.innerHTML = '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'ticket-wrapper';
+            wrapper.id = 'actualTicket';
+
+            const header = document.createElement('div');
+            header.className = 'ticket-header';
+           
+            const title = document.createElement('div');
+            title.className = 'ticket-title';
+            title.innerText = 'TAMBOLA TICKET';
+
+            currentTicketId = 'TICK-' + Math.floor(100000 + Math.random() * 900000);
+            const idTag = document.createElement('span');
+            idTag.className = 'ticket-id';
+            idTag.innerText = currentTicketId;
+
+            header.appendChild(title);
+            header.appendChild(idTag);
+            wrapper.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'ticket-grid';
+
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const val = ticketData[r][c];
+                    const cell = document.createElement('div');
+                   
+                    if (val === 0) {
+                        cell.className = 'ticket-cell empty';
+                        cell.innerHTML = '&nbsp;';
+                    } else {
+                        cell.className = 'ticket-cell';
+                        cell.innerText = val;
+                        cell.onclick = function() { this.classList.toggle('marked'); };
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+            wrapper.appendChild(grid);
+            container.appendChild(wrapper);
+        }
+
+        function generateNewTicket() {
+            renderTicket(generateTambolaTicketData());
+        }
+
+        function downloadTicketImage() {
+            const ticketElement = document.getElementById('actualTicket');
+            if (!ticketElement) return;
+
+            html2canvas(ticketElement, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `${currentTicketId}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        async function shareToWhatsApp() {
+            const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (!isMobileDevice) {
+                alert("డైరెక్ట్ ఇమేజ్ షేరింగ్ కేవలం Android మరియు iPhone డివైజ్‌లలో మాత్రమే పనిచేస్తుంది. దయచేసి 'Ticket Image' బటన్ ద్వారా డౌన్‌లోడ్ చేసి షేర్ చేయండి.");
+                return;
+            }
+
+            const ticketElement = document.getElementById('actualTicket');
+            if (!ticketElement) return;
+
+            try {
+                const canvas = await html2canvas(ticketElement, { scale: 2 });
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+                    const file = new File([blob], `${currentTicketId}.png`, { type: 'image/png' });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Tambola Ticket',
+                            text: `Tambola Ticket - ${currentTicketId}`
+                        });
+                    }
+                }, 'image/png');
+            } catch (err) {
+                if (err.name !== 'AbortError') console.error(err);
+            }
+        }
+
+        window.onload = function() {
+            initBoard();
+            generateNewTicket();
+        };
+    </script>
+</body>
+</html>
