@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Premium Tambola Ticket Generator</title>
-    <!-- సరైన html2canvas CDN లింక్ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -18,29 +17,32 @@
             --text-main: #2d3436;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100dvh;
+            min-height: 100vh;
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            width: 100%;        /* 3. Explicitly locks width to device width */
+            padding: 15px;
         }
 
         .container {
             text-align: center;
-            max-width: 800px;
+            max-width: 650px;
             width: 100%;
         }
 
         h1 {
             color: var(--bg-dark);
             margin-bottom: 20px;
-            font-size: 2.3rem;
+            font-size: clamp(1.5rem, 5vw, 2.3rem);
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
@@ -53,7 +55,8 @@
             font-size: 1rem;
             border: 2px solid #b2bec3;
             border-radius: 25px;
-            width: 280px;
+            width: 100%;
+            max-width: 280px;
             outline: none;
             text-align: center;
             transition: all 0.3s ease;
@@ -68,21 +71,22 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 35px;
+            gap: 10px;
+            margin-bottom: 25px;
         }
 
         .btn {
             color: white;
             border: none;
-            padding: 12px 24px;
-            font-size: 1rem;
+            padding: 10px 20px;
+            font-size: 0.95rem;
             font-weight: 600;
             border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
@@ -98,60 +102,61 @@
         .btn-whatsapp { background-color: var(--whatsapp-color); }
 
         #ticketContainer {
-            display: inline-block;
-            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            justify-content: center;
         }
 
         .ticket-wrapper {
             background: var(--ticket-bg);
-            padding: 25px;
+            padding: clamp(12px, 3vw, 25px);
             border-radius: 16px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border-left: 8px solid var(--primary-color);
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
+            border-left: 6px solid var(--primary-color);
+            width: 100%;
+            max-width: 600px;
         }
 
         .ticket-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             border-bottom: 2px dashed var(--secondary-color);
-            padding-bottom: 10px;
-            gap: 40px;
+            padding-bottom: 8px;
+            gap: 10px;
         }
 
         .meta-details {
             text-align: left;
+            overflow: hidden;
         }
 
         .ticket-title {
-            font-size: 1.4rem;
+            font-size: clamp(1.1rem, 3.5vw, 1.4rem);
             font-weight: 700;
             color: var(--primary-color);
-            letter-spacing: 2px;
-            margin: 0 0 4px 0;
+            letter-spacing: 1.5px;
+            margin: 0 0 2px 0;
         }
 
         .group-tag {
-            font-size: 0.9rem;
+            font-size: clamp(0.75rem, 2.5vw, 0.9rem);
             font-weight: 600;
             color: #636e72;
             display: block;
-            max-width: 220px;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            max-width: 180px;
         }
 
         .ticket-id {
-            font-size: 0.9rem;
+            font-size: clamp(0.75rem, 2.5vw, 0.9rem);
             color: #7f8c8d;
             background: #f1f2f6;
-            padding: 6px 14px;
-            border-radius: 12px;
+            padding: 4px 10px;
+            border-radius: 10px;
             font-weight: 600;
             white-space: nowrap;
         }
@@ -159,23 +164,24 @@
         .ticket-grid {
             display: grid;
             grid-template-columns: repeat(9, 1fr);
-            gap: 6px;
+            gap: 3px;
             background-color: var(--border-color);
-            padding: 6px;
+            padding: 4px;
             border-radius: 8px;
+            width: 100%;
         }
 
         .cell {
             background-color: #ffffff;
-            width: 60px;
-            height: 60px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
+            font-size: clamp(0.9rem, 3.5vw, 1.35rem);
             font-weight: 700;
             color: var(--text-main);
-            border-radius: 6px;
+            border-radius: 4px;
             transition: all 0.2s ease;
             user-select: none;
         }
@@ -190,27 +196,21 @@
             background-color: var(--secondary-color);
             color: white;
             transform: scale(0.95);
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.2);
         }
 
-        @media (max-width: 650px) {
-            .cell {
-                width: 35px;
-                height: 35px;
-                font-size: 1rem;
-            }
-            .ticket-wrapper { padding: 15px; }
+        @media (max-width: 480px) {
             .controls-panel {
                 flex-direction: column;
-                align-items: stretch;
-                padding: 0 20px;
             }
-            .btn { justify-content: center; }
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-<div><a href="inpdf.html">PDF File</a></div>
+
     <div class="container">
         <h1>Premium Tambola Ticket</h1>
        
@@ -240,7 +240,6 @@
                 return nums;
             });
 
-            // లోపం సరిదిద్దబడింది: array indices జోడించబడ్డాయి
             let colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
             colIndices.sort(() => Math.random() - 0.5);
            
@@ -386,7 +385,6 @@
             const groupName = document.getElementById('groupNameInput').value.trim() || "Family & Friends Fun";
             const customMessageText = `Hey! Join our Tambola game for "${groupName}". Here is my Ticket ID: ${currentTicketId}. Let's play! 🎉`;
             const encodedTextPayload = encodeURIComponent(customMessageText);
-            // వాట్సాప్ URL సరిదిద్దబడింది
             const targetWhatsAppURL = `https://api.whatsapp.com/send?text=${encodedTextPayload}`;
            
             window.open(targetWhatsAppURL, '_blank');
