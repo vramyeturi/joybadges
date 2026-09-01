@@ -648,32 +648,51 @@
         }
 
         async function shareToWhatsApp() {
-            const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-            if (!isMobileDevice) {
-                alert("డైరెక్ట్ ఇమేజ్ షేరింగ్ కేవలం Android మరియు iPhone డివైజ్‌లలో మాత్రమే పనిచేస్తుంది. దయచేసి 'Ticket Image' బటన్ ద్వారా డౌన్‌లోడ్ చేసి షేర్ చేయండి.");
-                return;
-            }
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobileDevice) {
+        alert("డైరెక్ట్ ఇమేజ్ షేరింగ్ కేవలం Android మరియు iPhone డివైజ్‌లలో మాత్రమే పనిచేస్తుంది. దయచేసి 'Ticket Image' బటన్ ద్వారా డౌన్‌లోడ్ చేసి షేర్ చేయండి.");
+        return;
+    }
 
-            const ticketElement = document.getElementById('actualTicket');
-            if (!ticketElement) return;
+    const ticketElement = document.getElementById('actualTicket');
+    if (!ticketElement) return;
 
-            try {
-                const canvas = await html2canvas(ticketElement, { scale: 2 });
-                canvas.toBlob(async (blob) => {
-                    if (!blob) return;
-                    const file = new File([blob], `${currentTicketId}.png`, { type: 'image/png' });
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Tambola Ticket',
-                            text: `Tambola Ticket - ${currentTicketId}`
-                        });
-                    }
-                }, 'image/png');
-            } catch (err) {
-                if (err.name !== 'AbortError') console.error(err);
-            }
+    try {
+        const canvas = await html2canvas(ticketElement, { 
+            scale: 2,
+            logging: false,
+            useCORS: true 
+        });
+
+        // Blob ను ప్రామిస్ రూపంలో తీసుకోవడం
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) {
+            alert("ఇమేజ్ జెనరేట్ చేయడంలో సమస్య ఏర్పడింది.");
+            return;
         }
+
+        const file = new File([blob], `${currentTicketId}.png`, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            // షేరింగ్ విండోను ఓపెన్ చేయడం
+            await navigator.share({
+                files: [file],
+                title: 'Tambola Ticket',
+                text: `Tambola Ticket - ${currentTicketId}`
+            });
+        } else {
+            alert("మీ బ్రౌజర్ డైరెక్ట్ ఇమేజ్ షేరింగ్‌కు సపోర్ట్ చేయడం లేదు. దయచేసి డౌన్‌లోడ్ చేసి షేర్ చేయండి.");
+        }
+    } catch (err) {
+        // యూజర్ షేర్ చేసి వెనక్కి వచ్చినా లేదా షేర్ చేయకుండా క్యాన్సిల్ చేసినా ఎర్రర్ రాకుండా నివారిస్తుంది
+        if (err.name !== 'AbortError') {
+            console.error("Share error: ", err);
+        }
+    } finally {
+        // WhatsApp నుండి తిరిగి పేజ్‌కి రాగానే UI ఫోకస్ రీఫ్రెష్ అవుతుంది
+        window.focus();
+    }
+}
 
         window.onload = function() {
             initBoard();
