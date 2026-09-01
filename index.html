@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Premium Tambola Ticket Generator</title>
+    <!-- html2canvas CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -381,13 +382,54 @@
             });
         }
 
-        function shareToWhatsApp() {
-            const groupName = document.getElementById('groupNameInput').value.trim() || "Family & Friends Fun";
-            const customMessageText = `Hey! Join our Tambola game for "${groupName}". Here is my Ticket ID: ${currentTicketId}. Let's play! 🎉`;
-            const encodedTextPayload = encodeURIComponent(customMessageText);
-            const targetWhatsAppURL = `https://api.whatsapp.com/send?text=${encodedTextPayload}`;
-           
-            window.open(targetWhatsAppURL, '_blank');
+        async function shareToWhatsApp() {
+            // మొబైల్ డివైజ్ అవునా కాదా అని తనిఖీ
+            const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            if (!isMobileDevice) {
+                alert("డైరెక్ట్ ఇమేజ్ షేరింగ్ కేవలం Android మరియు iPhone డివైజ్‌లలో మాత్రమే పనిచేస్తుంది. దయచేసి 'Download Image' బటన్ ఉపయోగించి ఇమేజ్‌ను మాన్యువల్‌గా షేర్ చేయండి.");
+                return;
+            }
+
+            const ticketElement = document.getElementById('actualTicket');
+            if (!ticketElement) return;
+
+            try {
+                const canvas = await html2canvas(ticketElement, {
+                    scale: 2,
+                    logging: false,
+                    useCORS: true
+                });
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        alert("ఇమేజ్ జెనరేట్ చేయడంలో సమస్య ఏర్పడింది.");
+                        return;
+                    }
+
+                    const fileName = `${currentTicketId}.png`;
+                    const file = new File([blob], fileName, { type: 'image/png' });
+
+                    const groupName = document.getElementById('groupNameInput').value.trim() || "Family & Friends Fun";
+                    const shareText = `Tambola Ticket - ${groupName} (${currentTicketId})`;
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Tambola Ticket',
+                            text: shareText
+                        });
+                    } else {
+                        alert("మీ మొబైల్ బ్రౌజర్ డైరెక్ట్ ఇమేజ్ షేరింగ్‌కు సపోర్ట్ చేయడం లేదు. దయచేసి ఇమేజ్‌ను డౌన్‌లోడ్ చేసి షేర్ చేయండి.");
+                    }
+                }, 'image/png');
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("Error sharing ticket: ", err);
+                    alert("షేర్ చేయడంలో సమస్య ఏర్పడింది.");
+                }
+            }
         }
 
         window.onload = generateNewTicket;
