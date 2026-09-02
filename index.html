@@ -1,236 +1,351 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="te">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Tambola Ticket Generator</title>
-    <!-- html2canvas CDN -->
+    <title>Tambola Caller & Ticket Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
-            --primary-color: #6c5ce7;
-            --secondary-color: #a29bfe;
-            --success-color: #2ecc71;
-            --whatsapp-color: #25D366;
-            --bg-dark: #2d3436;
-            --ticket-bg: #ffffff;
-            --border-color: #dfe6e9;
-            --text-main: #2d3436;
+            --primary: #6c5ce7;
+            --called-bg: #fff200;
+            --called-text: #000000;
+            --current-bg: #00b894;
+            --current-text: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #1e272e 0%, #2f3542 100%);
         }
-
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: var(--bg-gradient);
+            color: #ffffff;
             min-height: 100vh;
-            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 15px;
+            padding: 12px;
         }
-
         .container {
-            text-align: center;
-            max-width: 650px;
             width: 100%;
-        }
-
-        h1 {
-            color: var(--bg-dark);
-            margin-bottom: 20px;
-            font-size: clamp(1.5rem, 5vw, 2.3rem);
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }
-
-        .input-panel {
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            padding: 12px 20px;
-            font-size: 1rem;
-            border: 2px solid #b2bec3;
-            border-radius: 25px;
-            width: 100%;
-            max-width: 280px;
-            outline: none;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .input-group:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 10px rgba(108, 92, 231, 0.2);
-        }
-
-        .controls-panel {
+            max-width: 800px;
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 25px;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
         }
-
-        .btn {
-            color: white;
-            border: none;
+        h1 { font-size: clamp(1.4rem, 4vw, 1.8rem); text-align: center; }
+        .display-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
             padding: 10px 20px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .main-number-box { display: flex; flex-direction: column; align-items: center; }
+        .current-number {
+            font-size: clamp(3rem, 10vw, 4.5rem);
+            font-weight: 800;
+            color: #ffeaa7;
+            height: clamp(60px, 12vw, 80px);
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+        .current-number.flash { color: #ff7675; transform: scale(1.1); }
+        .status-badge { font-size: 0.8rem; color: #a4b0be; text-transform: uppercase; }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-        }
-
-        .btn:active { transform: translateY(1px); }
-        .btn-generate { background-color: var(--primary-color); }
-        .btn-download { background-color: var(--success-color); }
-        .btn-whatsapp { background-color: var(--whatsapp-color); }
-
-        #ticketContainer {
+        .board-wrapper {
+            background: #ffffff;
+            padding: clamp(10px, 2.5vw, 18px);
+            border-radius: 14px;
             width: 100%;
-            display: flex;
-            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
-
-        .ticket-wrapper {
-            background: var(--ticket-bg);
-            padding: clamp(12px, 3vw, 25px);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border-left: 6px solid var(--primary-color);
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .ticket-header {
+        .board-header {
+            color: #2d3436;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            border-bottom: 2px dashed var(--secondary-color);
-            padding-bottom: 8px;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 2px solid #dfe6e9;
+            padding-bottom: 6px;
         }
-
-        .meta-details {
-            text-align: left;
-            overflow: hidden;
-        }
-
-        .ticket-title {
-            font-size: clamp(1.1rem, 3.5vw, 1.4rem);
-            font-weight: 700;
-            color: var(--primary-color);
-            letter-spacing: 1.5px;
-            margin: 0 0 2px 0;
-        }
-
-        .group-tag {
-            font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-            font-weight: 600;
-            color: #636e72;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 180px;
-        }
-
-        .ticket-id {
-            font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-            color: #7f8c8d;
+        .board-title { font-size: 1.1rem; font-weight: 800; }
+        .board-meta { font-size: 0.85rem; font-weight: 600; color: #636e72; display: flex; gap: 12px; }
+        .board-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; width: 100%; }
+        .board-cell {
             background: #f1f2f6;
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-weight: 600;
-            white-space: nowrap;
+            color: #2d3436;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 3.2vw, 1.6rem);
+            font-weight: 800;
+            border-radius: 6px;
+            user-select: none;
         }
+        .board-cell.called { background: var(--called-bg) !important; color: var(--called-text) !important; border: 2px solid #e1b12c; }
+        .board-cell.last-called { background: var(--current-bg) !important; color: var(--current-text) !important; border: 2px solid #009432; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(0.96); } 100% { transform: scale(1.04); } }
 
-        .ticket-grid {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            gap: 3px;
-            background-color: var(--border-color);
-            padding: 4px;
-            border-radius: 8px;
+        .controls-wrapper { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .btn-next {
             width: 100%;
+            background-color: var(--primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            color: white;
+            cursor: pointer;
         }
+        .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
+        .sub-buttons-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+        .btn-sub {
+            border: none;
+            padding: 10px 6px;
+            border-radius: 10px;
+            font-size: clamp(0.75rem, 2.2vw, 0.9rem);
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            min-height: 44px;
+        }
+        .btn-board-dl { background-color: #00b894; }
+        .btn-reset { background-color: #d63031; }
+        .btn-mute { background-color: #636e72; }
+        .btn-mute.active { background-color: #e17055; }
+        .btn-ticket-gen { background-color: #0984e3; }
+        .btn-ticket-dl { background-color: #00cec9; }
+        .btn-ticket-share { background-color: #25D366; }
 
-        .cell {
+        .ticket-section { width: 100%; margin-top: 10px; display: flex; flex-direction: column; align-items: center; }
+        .ticket-wrapper {
+            background: #ffffff;
+            padding: clamp(10px, 3vw, 20px);
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            border-left: 6px solid var(--primary);
+            width: 100%;
+            max-width: 600px;
+        }
+        .ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px dashed #a29bfe; padding-bottom: 6px; }
+        .ticket-title { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+        .ticket-id { font-size: 0.85rem; color: #2d3436; background: #f1f2f6; padding: 4px 8px; border-radius: 8px; font-weight: 700; }
+        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; background-color: #dfe6e9; padding: 4px; border-radius: 8px; width: 100%; }
+        .ticket-cell {
             background-color: #ffffff;
             width: 100%;
             aspect-ratio: 1 / 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(0.9rem, 3.5vw, 1.35rem);
-            font-weight: 700;
-            color: var(--text-main);
+            font-size: clamp(0.95rem, 3.2vw, 1.3rem);
+            font-weight: 800;
+            color: #2d3436;
             border-radius: 4px;
-            transition: all 0.2s ease;
-            user-select: none;
         }
+        .ticket-cell.empty { background-color: #f8f9fa; color: transparent; }
 
-        .cell.empty {
-            background-color: #f8f9fa;
-            color: transparent;
-        }
-
-        .cell:not(.empty) { cursor: pointer; }
-        .cell:not(.empty).marked {
-            background-color: var(--secondary-color);
-            color: white;
-            transform: scale(0.95);
-            box-shadow: inset 0 0 6px rgba(0,0,0,0.2);
-        }
-
-        @media (max-width: 480px) {
-            .controls-panel {
-                flex-direction: column;
-            }
-            .btn {
-                width: 100%;
-            }
+        @media (max-width: 500px) {
+            .sub-buttons-grid { grid-template-columns: repeat(2, 1fr); }
+            .board-grid { gap: 2px; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Premium Tambola Ticket</h1>
-       
-        <div class="input-panel">
-            <input type="text" id="groupNameInput" class="input-group" placeholder="Enter Event/Group Name" maxlength="25" oninput="updateLiveGroupName()">
+        <h1>🎲 Tambola Caller & Ticket</h1>
+
+        <div class="display-card">
+            <div class="main-number-box">
+                <span class="status-badge" id="statusText">Next Number</span>
+                <div class="current-number" id="currentNumber">--</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.85rem; color: #a4b0be;">Called Count</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #55efc4;" id="calledCount">0 / 90</div>
+            </div>
         </div>
 
-        <div class="controls-panel">
-            <button class="btn btn-generate" onclick="generateNewTicket()">🔄 Generate Ticket</button>
-            <button class="btn btn-download" onclick="downloadTicketImage()">📥 Download Image</button>
-            <button class="btn btn-whatsapp" onclick="shareToWhatsApp()">💬 WhatsApp Share</button>
+        <div class="board-wrapper" id="boardWrapper">
+            <div class="board-header">
+                <div class="board-title">TAMBOLA BOARD</div>
+                <div class="board-meta">
+                    <span id="playNumber">Play No: 1</span>
+                    <span id="liveDateTime">--:--:--</span>
+                </div>
+            </div>
+            <div class="board-grid" id="boardGrid"></div>
         </div>
-       
-        <div id="ticketContainer"></div>
+
+        <div class="controls-wrapper">
+            <button class="btn-next" id="nextBtn" onclick="drawNextNumber()">⚡ NEXT NUMBER</button>
+
+            <div class="sub-buttons-grid">
+                <button class="btn-sub btn-board-dl" onclick="downloadBoard()">📥 Board Image</button>
+                <button class="btn-sub btn-mute" id="muteBtn" onclick="toggleMute()">🔊 Sound: ON</button>
+                <button class="btn-sub btn-reset" onclick="resetGame()">🔄 Reset Game</button>
+                <button class="btn-sub btn-ticket-gen" onclick="generateNewTicket()">🎟️ Gen Ticket</button>
+                <button class="btn-sub btn-ticket-dl" onclick="downloadTicketImage()">💾 Ticket Image</button>
+                <button class="btn-sub btn-ticket-share" onclick="shareTicketLinkWhatsApp()">🔗 Share Link</button>
+            </div>
+        </div>
+
+        <div class="ticket-section">
+            <div id="ticketContainer" style="width: 100%; display: flex; justify-content: center;"></div>
+        </div>
     </div>
-    
-    <script>
-        let currentTicketId = "";
 
+    <script>
+        let availableNumbers = [];
+        let calledNumbers = [];
+        let isMuted = false;
+        let isRolling = false;
+        let playCount = 1;
+        let currentTicketId = "";
+        let currentTicketRawData = []; // 27 సంఖ్యల శ్రేణి (3x9)
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTickSound() {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.03);
+        }
+
+        function playBellSound() {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            [880, 1760].forEach((freq) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.2);
+            });
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('liveDateTime').innerText = `${dateStr} | ${timeStr}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        function initBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 90; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'board-cell';
+                cell.id = `cell-${i}`;
+                cell.innerText = i;
+                grid.appendChild(cell);
+            }
+            availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
+            calledNumbers = [];
+            document.getElementById('playNumber').innerText = `Play No: ${playCount}`;
+            document.getElementById('calledCount').innerText = `0 / 90`;
+        }
+
+        function drawNextNumber() {
+            if (isRolling || availableNumbers.length === 0) return;
+            isRolling = true;
+            document.getElementById('nextBtn').disabled = true;
+            const currentNumEl = document.getElementById('currentNumber');
+            document.getElementById('statusText').innerText = "Selecting...";
+            currentNumEl.classList.add('flash');
+
+            let flashes = 0;
+            const flashInterval = setInterval(() => {
+                currentNumEl.innerText = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+                playTickSound();
+                flashes++;
+                if (flashes >= 18) {
+                    clearInterval(flashInterval);
+                    finalizeNumber();
+                }
+            }, 70);
+        }
+
+        function finalizeNumber() {
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const pickedNumber = availableNumbers.splice(randomIndex, 1)[0];
+
+            if (calledNumbers.length > 0) {
+                const prevCell = document.getElementById(`cell-${calledNumbers[calledNumbers.length - 1]}`);
+                if (prevCell) prevCell.className = 'board-cell called';
+            }
+
+            calledNumbers.push(pickedNumber);
+            const currentNumEl = document.getElementById('currentNumber');
+            currentNumEl.classList.remove('flash');
+            currentNumEl.innerText = pickedNumber;
+            document.getElementById('statusText').innerText = "Current Number";
+
+            const cell = document.getElementById(`cell-${pickedNumber}`);
+            if (cell) cell.className = 'board-cell called last-called';
+
+            playBellSound();
+            document.getElementById('calledCount').innerText = `${calledNumbers.length} / 90`;
+            isRolling = false;
+            document.getElementById('nextBtn').disabled = availableNumbers.length === 0;
+            if (availableNumbers.length === 0) document.getElementById('statusText').innerText = "Game Over!";
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteBtn = document.getElementById('muteBtn');
+            muteBtn.innerText = isMuted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
+            muteBtn.classList.toggle('active', isMuted);
+        }
+
+        function resetGame() {
+            if (calledNumbers.length > 0 && !confirm("ఆటను రీసెట్ చేసి కొత్త Play ప్రారంభించాలనుకుంటున్నారా?")) return;
+            playCount++;
+            document.getElementById('currentNumber').innerText = "--";
+            document.getElementById('statusText').innerText = "Next Number";
+            document.getElementById('nextBtn').disabled = false;
+            initBoard();
+        }
+
+        function downloadBoard() {
+            const board = document.getElementById('boardWrapper');
+            html2canvas(board, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Tambola-Board-Play-${playCount}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        /* టిక్కెట్ జనరేషన్ */
         function generateTambolaTicketData() {
             let ticket = Array(3).fill().map(() => Array(9).fill(0));
             let columns = Array(9).fill().map((_, i) => {
@@ -241,51 +356,38 @@
                 return nums;
             });
 
-            let colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-            colIndices.sort(() => Math.random() - 0.5);
-           
+            let colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - 0.5);
             colIndices.forEach((col, idx) => {
                 let row = idx % 3;
                 let randIdx = Math.floor(Math.random() * columns[col].length);
                 ticket[row][col] = columns[col].splice(randIdx, 1)[0];
             });
 
-            while (getTicketNumbersCount(ticket) < 15) {
+            while (ticket.reduce((acc, row) => acc + row.filter(v => v !== 0).length, 0) < 15) {
                 let row = Math.floor(Math.random() * 3);
                 let col = Math.floor(Math.random() * 9);
-
-                if (getRowNumbersCount(ticket[row]) < 5 && ticket[row][col] === 0 && columns[col].length > 0) {
+                if (ticket[row].filter(v => v !== 0).length < 5 && ticket[row][col] === 0 && columns[col].length > 0) {
                     let randIdx = Math.floor(Math.random() * columns[col].length);
                     ticket[row][col] = columns[col].splice(randIdx, 1)[0];
                 }
             }
 
             for (let c = 0; c < 9; c++) {
-                let colActiveValues = [];
+                let activeVals = [];
                 for (let r = 0; r < 3; r++) {
-                    if (ticket[r][c] !== 0) colActiveValues.push(ticket[r][c]);
+                    if (ticket[r][c] !== 0) activeVals.push(ticket[r][c]);
                 }
-                colActiveValues.sort((a, b) => a - b);
-               
-                let activeIdx = 0;
+                activeVals.sort((a, b) => a - b);
+                let aIdx = 0;
                 for (let r = 0; r < 3; r++) {
-                    if (ticket[r][c] !== 0) {
-                        ticket[r][c] = colActiveValues[activeIdx++];
-                    }
+                    if (ticket[r][c] !== 0) ticket[r][c] = activeVals[aIdx++];
                 }
             }
             return ticket;
         }
 
-        function getRowNumbersCount(row) {
-            return row.filter(val => val !== 0).length;
-        }
-
-        function getTicketNumbersCount(ticket) {
-            return ticket.reduce((acc, row) => acc + getRowNumbersCount(row), 0);
-        }
-
         function renderTicket(ticketData) {
+            currentTicketRawData = ticketData.flat(); // 27 నెంబర్ల flat array
             const container = document.getElementById('ticketContainer');
             container.innerHTML = '';
 
@@ -296,29 +398,16 @@
             const header = document.createElement('div');
             header.className = 'ticket-header';
            
-            const meta = document.createElement('div');
-            meta.className = 'meta-details';
-
-            const title = document.createElement('h2');
+            const title = document.createElement('div');
             title.className = 'ticket-title';
-            title.innerText = 'TAMBOLA';
-
-            const groupTag = document.createElement('span');
-            groupTag.className = 'group-tag';
-            groupTag.id = 'ticketGroupDisplay';
-           
-            const enteredName = document.getElementById('groupNameInput').value.trim();
-            groupTag.innerText = enteredName ? enteredName : "Family & Friends Fun";
-
-            meta.appendChild(title);
-            meta.appendChild(groupTag);
+            title.innerText = 'TAMBOLA TICKET';
 
             currentTicketId = 'TICK-' + Math.floor(100000 + Math.random() * 900000);
             const idTag = document.createElement('span');
             idTag.className = 'ticket-id';
             idTag.innerText = currentTicketId;
 
-            header.appendChild(meta);
+            header.appendChild(title);
             header.appendChild(idTag);
             wrapper.appendChild(header);
 
@@ -327,18 +416,14 @@
 
             for (let r = 0; r < 3; r++) {
                 for (let c = 0; c < 9; c++) {
-                    const cellValue = ticketData[r][c];
+                    const val = ticketData[r][c];
                     const cell = document.createElement('div');
-                   
-                    if (cellValue === 0) {
-                        cell.className = 'cell empty';
+                    if (val === 0) {
+                        cell.className = 'ticket-cell empty';
                         cell.innerHTML = '&nbsp;';
                     } else {
-                        cell.className = 'cell';
-                        cell.innerText = cellValue;
-                        cell.onclick = function() {
-                            this.classList.toggle('marked');
-                        };
+                        cell.className = 'ticket-cell';
+                        cell.innerText = val;
                     }
                     grid.appendChild(cell);
                 }
@@ -347,92 +432,44 @@
             container.appendChild(wrapper);
         }
 
-        function updateLiveGroupName() {
-            const display = document.getElementById('ticketGroupDisplay');
-            const inputVal = document.getElementById('groupNameInput').value.trim();
-            if(display) {
-                display.innerText = inputVal ? inputVal : "Family & Friends Fun";
-            }
-        }
-
         function generateNewTicket() {
-            const data = generateTambolaTicketData();
-            renderTicket(data);
+            renderTicket(generateTambolaTicketData());
         }
 
         function downloadTicketImage() {
             const ticketElement = document.getElementById('actualTicket');
             if (!ticketElement) return;
-
-            html2canvas(ticketElement, {
-                scale: 2,
-                logging: false,
-                useCORS: true
-            }).then(canvas => {
-                const imageURI = canvas.toDataURL('image/png');
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.href = imageURI;
-                downloadAnchor.download = `${currentTicketId}.png`;
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                document.body.removeChild(downloadAnchor);
-            }).catch(err => {
-                console.error("Canvas export failed: ", err);
-                alert("Could not process image generation.");
+            html2canvas(ticketElement, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `${currentTicketId}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
             });
         }
 
-        async function shareToWhatsApp() {
-            // మొబైల్ డివైజ్ అవునా కాదా అని తనిఖీ
-            const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-            if (!isMobileDevice) {
-                alert("డైరెక్ట్ ఇమేజ్ షేరింగ్ కేవలం Android మరియు iPhone డివైజ్‌లలో మాత్రమే పనిచేస్తుంది. దయచేసి 'Download Image' బటన్ ఉపయోగించి ఇమేజ్‌ను మాన్యువల్‌గా షేర్ చేయండి.");
+        // 27 నెంబర్ల స్ట్రింగ్ మరియు ప్లే నెంబర్ తో లింక్ వాట్సాప్‌కి పంపడం
+        function shareTicketLinkWhatsApp() {
+            if (!currentTicketRawData || currentTicketRawData.length !== 27) {
+                alert("ముందుగా టిక్కెట్ జెనరేట్ చేయండి!");
                 return;
             }
 
-            const ticketElement = document.getElementById('actualTicket');
-            if (!ticketElement) return;
+            // 27 సంఖ్యలను కామాలతో కలుపుతున్నాం (e.g. 10,0,23,...)
+            const dataString = currentTicketRawData.join(',');
+            
+            // ప్లేయర్ పేజీ URL తయారీ
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            const playerUrl = `${baseUrl}player.html?data=${encodeURIComponent(dataString)}&play=${playCount}&id=${currentTicketId}`;
 
-            try {
-                const canvas = await html2canvas(ticketElement, {
-                    scale: 2,
-                    logging: false,
-                    useCORS: true
-                });
-
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        alert("ఇమేజ్ జెనరేట్ చేయడంలో సమస్య ఏర్పడింది.");
-                        return;
-                    }
-
-                    const fileName = `${currentTicketId}.png`;
-                    const file = new File([blob], fileName, { type: 'image/png' });
-
-                    const groupName = document.getElementById('groupNameInput').value.trim() || "Family & Friends Fun";
-                    const shareText = `Tambola Ticket - ${groupName} (${currentTicketId})`;
-
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Tambola Ticket',
-                            text: shareText
-                        });
-                    } else {
-                        alert("మీ మొబైల్ బ్రౌజర్ డైరెక్ట్ ఇమేజ్ షేరింగ్‌కు సపోర్ట్ చేయడం లేదు. దయచేసి ఇమేజ్‌ను డౌన్‌లోడ్ చేసి షేర్ చేయండి.");
-                    }
-                }, 'image/png');
-
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error("Error sharing ticket: ", err);
-                    alert("షేర్ చేయడంలో సమస్య ఏర్పడింది.");
-                }
-            }
+            const msg = `🎟️ *Tambola Ticket (Play No: ${playCount})*\nTicket ID: ${currentTicketId}\nమీ టిక్కెట్ ఓపెన్ చేయడానికి ఈ లింక్ క్లిక్ చేయండి:\n👉 ${playerUrl}`;
+            
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        window.onload = generateNewTicket;
+ window.onload = function() {
+            initBoard();
+            generateNewTicket();
+        };
     </script>
 </body>
 </html>
