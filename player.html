@@ -268,7 +268,7 @@
                 const canvas = await html2canvas(ticketElement, { scale: 2 });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 if (!blob) {
-                    alert("ఇమేజ్ ప్రాసెస్ చేయడంలో ఎర్రర్ వచ్చింది.");
+                    alert("Error In Image Process.");
                     return;
                 }
 
@@ -287,7 +287,7 @@
                     link.download = `${ticketId}_marked.png`;
                     link.href = canvas.toDataURL('image/png');
                     link.click();
-                    alert("మార్క్ చేసిన టిక్కెట్ డౌన్‌లోడ్ అయ్యింది. మీరు వాట్సాప్‌లో లీడ్‌కి పంపవచ్చు.");
+                    alert("Image Downloaded. Now You Can Send to Play Lead.");
                 }
             } catch (err) {
                 if (err.name !== 'AbortError') {
