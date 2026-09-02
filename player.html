@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Tambola Ticket</title>
+    <!-- html2canvas లైబ్రరీ ఇమేజ్ షేర్ చేయడానికి -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --success: #00b894;
+            --bg-gradient: linear-gradient(135deg, #1e272e 0%, #2f3542 100%);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* ఎర్రర్ మెసేజ్ బాక్స్ */
+        .error-card {
+            display: none;
+            background: rgba(235, 77, 75, 0.2);
+            border: 2px solid #eb4d4b;
+            border-radius: 14px;
+            padding: 25px 20px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .error-card h2 {
+            color: #ff7979;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        /* టిక్కెట్ కార్డ్ */
+        .ticket-wrapper {
+            background: #ffffff;
+            padding: clamp(12px, 3.5vw, 24px);
+            border-radius: 16px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+            border-left: 8px solid var(--primary);
+            width: 100%;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 2px dashed #a29bfe;
+            padding-bottom: 8px;
+        }
+
+        .ticket-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 1.5px;
+        }
+
+        .meta-info {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.85rem;
+            color: #2d3436;
+            background: #f1f2f6;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .ticket-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 4px;
+            background-color: #dfe6e9;
+            padding: 5px;
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        .ticket-cell {
+            background-color: #ffffff;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 3.5vw, 1.45rem);
+            font-weight: 800;
+            color: #2d3436;
+            border-radius: 6px;
+            user-select: none;
+            cursor: pointer;
+            transition: transform 0.15s, background-color 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .ticket-cell:active {
+            transform: scale(0.92);
+        }
+
+        .ticket-cell.empty {
+            background-color: #f8f9fa;
+            color: transparent;
+            cursor: default;
+        }
+
+        /* క్లిక్ చేసినప్పుడు గ్రీన్ కలర్ */
+        .ticket-cell.marked {
+            background-color: #00b894 !important;
+            color: #ffffff !important;
+            box-shadow: inset 0 0 0 2px #009432;
+            transform: scale(0.96);
+        }
+
+        /* బటన్లు */
+        .controls-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: white;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            flex: 1;
+            max-width: 250px;
+        }
+
+        .btn:active { transform: scale(0.96); }
+        .btn-send { background-color: var(--success); }
+        .btn-home { background-color: #636e72; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- లోపం ఉన్నప్పుడు కనిపించే మెసేజ్ -->
+        <div class="error-card" id="errorCard">
+            <h2>⚠️ Link Expired!</h2>
+            <p>Link Expired! Ask Game Lead to Send Link</p>
+            <div style="margin-top: 15px;">
+                <a href="index.html" class="btn btn-home" style="display:inline-block; max-width: 150px; padding: 8px 16px;">Go Home</a>
+            </div>
+        </div>
+
+        <!-- ప్లేయర్ టిక్కెట్ కార్డ్ -->
+        <div class="ticket-wrapper" id="playerTicket">
+            <div class="ticket-header">
+                <div>
+                    <div class="ticket-title">PLAYER TICKET</div>
+                    <div style="font-size: 0.8rem; color: #636e72;">నెంబర్లను ట్యాప్ చేసి మార్క్ చేయండి</div>
+                </div>
+                <div class="meta-info">
+                    <span class="badge" id="displayPlayNo">Play: 1</span>
+                    <span class="badge" id="displayTicketId">TICK-000000</span>
+                </div>
+            </div>
+
+            <div class="ticket-grid" id="playerGrid"></div>
+        </div>
+
+        <!-- బటన్స్ -->
+        <div class="controls-row" id="playerControls">
+            <button class="btn btn-send" onclick="sendToLead()">📤 Send To Lead</button>
+            <a href="index.html" class="btn btn-home">🏠 Home</a>
+        </div>
+    </div>
+
+    <script>
+        let ticketId = "";
+        let playNo = "";
+
+        // లింక్ నుండి 27 సంఖ్యల డేటా మరియు వివరాలు తీసుకోవడం
+        function parseUrlData() {
+            const params = new URLSearchParams(window.location.search);
+            const rawData = params.get('data');
+            playNo = params.get('play');
+            ticketId = params.get('id') || 'TICK-TMB';
+
+            // వ్యాలిడేషన్: 27 నెంబర్లు ఉండాలి
+            if (!rawData || !playNo) return null;
+
+            const numbers = rawData.split(',').map(n => parseInt(n.trim(), 10));
+            if (numbers.length !== 27 || numbers.some(isNaN)) {
+                return null;
+            }
+
+            return numbers;
+        }
+
+        function showExpiredError() {
+            document.getElementById('playerTicket').style.display = 'none';
+            document.getElementById('playerControls').style.display = 'none';
+            document.getElementById('errorCard').style.display = 'block';
+        }
+
+        function renderPlayerTicket(numbers) {
+            document.getElementById('displayPlayNo').innerText = `Play: ${playNo}`;
+            document.getElementById('displayTicketId').innerText = ticketId;
+
+            const grid = document.getElementById('playerGrid');
+            grid.innerHTML = '';
+
+            numbers.forEach(val => {
+                const cell = document.createElement('div');
+                if (val === 0) {
+                    cell.className = 'ticket-cell empty';
+                    cell.innerHTML = '&nbsp;';
+                } else {
+                    cell.className = 'ticket-cell';
+                    cell.innerText = val;
+                    // మొదటి క్లిక్: గ్రీన్, రెండో క్లిక్: బ్యాక్ నార్మల్
+                    cell.onclick = function() {
+                        this.classList.toggle('marked');
+                    };
+                }
+                grid.appendChild(cell);
+            });
+        }
+
+        // మార్క్ చేసిన టిక్కెట్‌ను ఇమేజ్‌గా లీడ్‌కి షేర్ చేయడం
+        async function sendToLead() {
+            const ticketElement = document.getElementById('playerTicket');
+            if (!ticketElement) return;
+
+            try {
+                const canvas = await html2canvas(ticketElement, { scale: 2 });
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                if (!blob) {
+                    alert("ఇమేజ్ ప్రాసెస్ చేయడంలో ఎర్రర్ వచ్చింది.");
+                    return;
+                }
+
+                const file = new File([blob], `${ticketId}_marked.png`, { type: 'image/png' });
+
+                // మొబైల్ వాట్సాప్ షేర్
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Tambola Ticket Check',
+                        text: `Tambola Claim! My Ticket: ${ticketId} (Play: ${playNo})`
+                    });
+                } else {
+                    // షేరింగ్ సపోర్ట్ లేకపోతే ఇమేజ్ డౌన్‌లోడ్
+                    const link = document.createElement('a');
+                    link.download = `${ticketId}_marked.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    alert("మార్క్ చేసిన టిక్కెట్ డౌన్‌లోడ్ అయ్యింది. మీరు వాట్సాప్‌లో లీడ్‌కి పంపవచ్చు.");
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("Error sending to lead: ", err);
+                }
+            } finally {
+                window.focus();
+            }
+        }
+
+        window.onload = function() {
+            const ticketData = parseUrlData();
+            if (!ticketData) {
+                showExpiredError();
+            } else {
+                renderPlayerTicket(ticketData);
+            }
+        };
+    </script>
+</body>
+</html>
