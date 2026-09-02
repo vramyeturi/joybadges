@@ -327,7 +327,7 @@
         }
 
         function resetGame() {
-            if (calledNumbers.length > 0 && !confirm("ఆటను రీసెట్ చేసి కొత్త Play ప్రారంభించాలనుకుంటున్నారా?")) return;
+            if (calledNumbers.length > 0 && !confirm("Do You Want to Close the Existing Play and Reset??")) return;
             playCount++;
             document.getElementById('currentNumber').innerText = "--";
             document.getElementById('statusText').innerText = "Next Number";
@@ -461,7 +461,7 @@
             const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
             const playerUrl = `${baseUrl}player.html?data=${encodeURIComponent(dataString)}&play=${playCount}&id=${currentTicketId}`;
 
-            const msg = `🎟️ *Tambola Ticket (Play No: ${playCount})*\nTicket ID: ${currentTicketId}\nమీ టిక్కెట్ ఓపెన్ చేయడానికి ఈ లింక్ క్లిక్ చేయండి:\n👉 ${playerUrl}`;
+            const msg = `🎟️ *Tambola Ticket (Play No: ${playCount})*\nTicket ID: ${currentTicketId}\nClick On This Link to Open Your Ticket:\n👉 ${playerUrl}`;
             
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
         }
