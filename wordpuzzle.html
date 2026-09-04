@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>15x15 Word Search with Reset</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f4f6f9;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      margin: 10px;
+    }
+    h2 { margin-bottom: 6px; }
+    
+    .controls {
+      margin-bottom: 12px;
+    }
+    .reset-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .reset-btn:hover {
+      background-color: #c0392b;
+    }
+    .reset-btn:active {
+      transform: scale(0.96);
+    }
+
+    .word-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-weight: bold;
+      max-width: 400px;
+    }
+    .word-list span {
+      padding: 4px 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+    .word-list span.found {
+      text-decoration: line-through;
+      background: #27ae60;
+      color: white;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(15, 24px);
+      grid-template-rows: repeat(15, 24px);
+      gap: 2px;
+      background: #2d3748;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .cell {
+      width: 24px;
+      height: 24px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+      border-radius: 2px;
+      transition: background 0.1s ease;
+    }
+    .cell.selected {
+      background: #f1c40f; /* డ్రాగ్ చేస్తున్నప్పుడు పసుపు రంగు */
+      color: #000;
+    }
+    .cell.found {
+      background: #2ecc71; /* సరైన పదం దొరికితే ఆకుపచ్చ రంగు */
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Word Search (15x15)</h2>
+  
+  <div class="controls">
+    <button class="reset-btn" id="resetBtn">🔄 Reset Game</button>
+  </div>
+
+  <div class="word-list" id="wordList"></div>
+  <div id="grid"></div>
+
+  <script>
+    const GRID_SIZE = 15;
+    const WORDS = ["APPLE", "TIGER", "MANGO", "SOLAR", "ROBOT", "COSMOS", "NATURE"];
+    
+    let grid = [];
+    let isSelecting = false;
+    let startCell = null;
+    let selectedCells = [];
+    const foundWords = new Set();
+
+    const gridEl = document.getElementById("grid");
+    const wordListEl = document.getElementById("wordList");
+    const resetBtn = document.getElementById("resetBtn");
+
+    // 8 దిశలు: అడ్డంగా, నిలువుగా, మరియు 4 డయాగ్నల్స్
+    const DIRECTIONS = [
+      { dr: 0,  dc: 1  }, // Horizontal Right
+      { dr: 1,  dc: 0  }, // Vertical Down
+      { dr: 1,  dc: 1  }, // Diagonal Down-Right
+      { dr: 1,  dc: -1 }, // Diagonal Down-Left
+      { dr: 0,  dc: -1 }, // Horizontal Left
+      { dr: -1, dc: 0  }, // Vertical Up
+      { dr: -1, dc: 1  }, // Diagonal Up-Right
+      { dr: -1, dc: -1 }  // Diagonal Up-Left
+    ];
+
+    // 1. పదాలను సెట్ చేయడం మరియు రాండమ్ అక్షరాలను నింపడం
+    function placeWords() {
+      grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(''));
+
+      WORDS.forEach(word => {
+        let placed = false;
+        let attempts = 0;
+
+        while (!placed && attempts < 500) {
+          attempts++;
+          const dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+          const r = Math.floor(Math.random() * GRID_SIZE);
+          const c = Math.floor(Math.random() * GRID_SIZE);
+
+          const endR = r + dir.dr * (word.length - 1);
+          const endC = c + dir.dc * (word.length - 1);
+
+          if (endR >= 0 && endR < GRID_SIZE && endC >= 0 && endC < GRID_SIZE) {
+            let canPlace = true;
+            for (let i = 0; i < word.length; i++) {
+              const curR = r + dir.dr * i;
+              const curC = c + dir.dc * i;
+              if (grid[curR][curC] !== '' && grid[curR][curC] !== word[i]) {
+                canPlace = false;
+                break;
+              }
+            }
+
+            if (canPlace) {
+              for (let i = 0; i < word.length; i++) {
+                grid[r + dir.dr * i][c + dir.dc * i] = word[i];
+              }
+              placed = true;
+            }
+          }
+        }
+      });
+
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (grid[r][c] === '') {
+            grid[r][c] = letters[Math.floor(Math.random() * letters.length)];
+          }
+        }
+      }
+    }
+
+    // 2. UI రెండర్ చేయడం
+    function renderUI() {
+      gridEl.innerHTML = '';
+      wordListEl.innerHTML = '';
+
+      WORDS.forEach(w => {
+        const span = document.createElement("span");
+        span.id = `word-${w}`;
+        span.textContent = w;
+        wordListEl.appendChild(span);
+      });
+
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.textContent = grid[r][c];
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+          gridEl.appendChild(cell);
+        }
+      }
+    }
+
+    // 3. రీసెట్ ఫంక్షన్
+    function resetGame() {
+      foundWords.clear();
+      selectedCells = [];
+      isSelecting = false;
+      startCell = null;
+      placeWords();
+      renderUI();
+    }
+
+    resetBtn.addEventListener("click", resetGame);
+
+    function getCell(r, c) {
+      return document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
+    }
+
+    function getCellFromPoint(x, y) {
+      const el = document.elementFromPoint(x, y);
+      return el && el.classList.contains("cell") ? el : null;
+    }
+
+    // 4. స్వైప్ మరియు సెలెక్షన్ లాజిక్
+    function startSelection(cell) {
+      if (!cell) return;
+      isSelecting = true;
+      startCell = cell;
+      highlightLine(cell);
+    }
+
+    function updateSelection(cell) {
+      if (!isSelecting || !cell || !startCell) return;
+      highlightLine(cell);
+    }
+
+    function highlightLine(endCell) {
+      selectedCells.forEach(c => c.classList.remove("selected"));
+      selectedCells = [];
+
+      const r1 = parseInt(startCell.dataset.r);
+      const c1 = parseInt(startCell.dataset.c);
+      const r2 = parseInt(endCell.dataset.r);
+      const c2 = parseInt(endCell.dataset.c);
+
+      const dr = r2 - r1;
+      const dc = c2 - c1;
+
+      const isHorizontal = dr === 0 && dc !== 0;
+      const isVertical = dc === 0 && dr !== 0;
+      const isDiagonal = Math.abs(dr) === Math.abs(dc) && dr !== 0;
+
+      if (r1 === r2 && c1 === c2) {
+        selectedCells = [startCell];
+      } else if (isHorizontal || isVertical || isDiagonal) {
+        const stepR = dr === 0 ? 0 : dr / Math.abs(dr);
+        const stepC = dc === 0 ? 0 : dc / Math.abs(dc);
+        const steps = Math.max(Math.abs(dr), Math.abs(dc));
+
+        for (let i = 0; i <= steps; i++) {
+          const curCell = getCell(r1 + stepR * i, c1 + stepC * i);
+          if (curCell) selectedCells.push(curCell);
+        }
+      } else {
+        selectedCells = [startCell];
+      }
+
+      selectedCells.forEach(c => c.classList.add("selected"));
+    }
+
+    function endSelection() {
+      if (!isSelecting) return;
+      isSelecting = false;
+
+      const currentWord = selectedCells.map(c => c.textContent).join("");
+      const reversedWord = selectedCells.map(c => c.textContent).reverse().join("");
+
+      const matched = WORDS.find(w => w === currentWord || w === reversedWord);
+
+      if (matched && !foundWords.has(matched)) {
+        foundWords.add(matched);
+        selectedCells.forEach(c => {
+          c.classList.remove("selected");
+          c.classList.add("found");
+        });
+        document.getElementById(`word-${matched}`).classList.add("found");
+      } else {
+        selectedCells.forEach(c => c.classList.remove("selected"));
+      }
+
+      selectedCells = [];
+      startCell = null;
+    }
+
+    // టచ్ ఈవెంట్‌లు
+    gridEl.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      startSelection(getCellFromPoint(t.clientX, t.clientY));
+    });
+
+    window.addEventListener("touchmove", (e) => {
+      if (!isSelecting) return;
+      const t = e.touches[0];
+      updateSelection(getCellFromPoint(t.clientX, t.clientY));
+    });
+
+    window.addEventListener("touchend", endSelection);
+
+    // మౌస్ ఈవెంట్‌లు
+    gridEl.addEventListener("mousedown", (e) => startSelection(e.target));
+    gridEl.addEventListener("mousemove", (e) => {
+      if (isSelecting) updateSelection(e.target);
+    });
+    window.addEventListener("mouseup", endSelection);
+
+    // మొదటిసారి గేమ్‌ను ప్రారంభించడం
+    resetGame();
+  </script>
+</body>
+</html>
