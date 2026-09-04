@@ -19,6 +19,7 @@
       padding: 16px 10px 30px;
       min-height: 100vh;
       box-sizing: border-box;
+      overflow-x: hidden;
     }
 
     h2 {
@@ -86,6 +87,7 @@
     }
 
     .grid-container {
+      position: relative;
       background: #1e1e24;
       padding: 16px;
       border-radius: 14px;
@@ -123,7 +125,31 @@
       color: white;
     }
 
-    /* టేబుల్ కింద హైలైట్ బ్యానర్ */
+    /* పదం దొరికినప్పుడు వచ్చే ఫ్లోటింగ్ అభినందన టెక్స్ట్ */
+    .toast-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.6);
+      background: rgba(16, 172, 132, 0.95);
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 800;
+      padding: 10px 20px;
+      border-radius: 20px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 50;
+      white-space: nowrap;
+    }
+    .toast-popup.show {
+      opacity: 1;
+      transform: translate(-50%, -60%) scale(1.1);
+    }
+
+    /* బెస్ట్ స్కోర్ కార్డ్ */
     .best-score-card {
       margin-top: 18px;
       background: linear-gradient(135deg, #242b35 0%, #171b21 100%);
@@ -132,12 +158,24 @@
       border-radius: 10px;
       box-shadow: 0 4px 14px rgba(243, 156, 18, 0.25);
       text-align: center;
+      transition: transform 0.3s ease;
     }
     .best-score-text {
       color: #f1c40f;
       font-size: 15px;
       font-weight: 700;
       letter-spacing: 0.5px;
+    }
+
+    /* కాన్ఫెట్టి కాన్వాస్ (సెలబ్రేషన్ కోసం) */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
     }
 
     .modal-overlay {
@@ -150,25 +188,33 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 1000;
     }
     .modal-box {
       background: #1e1e24;
-      padding: 24px;
-      border-radius: 12px;
+      padding: 26px 20px;
+      border-radius: 14px;
       text-align: center;
-      border: 1px solid #10ac84;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-      max-width: 300px;
+      border: 1.5px solid #10ac84;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.8);
+      max-width: 310px;
       width: 85%;
     }
-    .modal-box h3 { margin: 0 0 10px 0; color: #10ac84; font-size: 22px; }
-    .modal-box p { margin: 0 0 18px 0; color: #c8d6e5; font-size: 14px; line-height: 1.4; }
+    .modal-box.record-breaker {
+      border-color: #f1c40f;
+      animation: recordGlow 1.5s infinite alternate;
+    }
+    @keyframes recordGlow {
+      from { box-shadow: 0 0 15px rgba(241, 196, 15, 0.3); }
+      to { box-shadow: 0 0 30px rgba(241, 196, 15, 0.8); }
+    }
+    .modal-box h3 { margin: 0 0 10px 0; font-size: 22px; }
+    .modal-box p { margin: 0 0 18px 0; color: #c8d6e5; font-size: 14px; line-height: 1.5; }
     .modal-btn {
       background: #10ac84;
       color: white;
       border: none;
-      padding: 9px 20px;
+      padding: 9px 22px;
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
@@ -189,20 +235,22 @@
 
   <div class="grid-container">
     <div id="grid"></div>
+    <div class="toast-popup" id="toast">Awesome!</div>
   </div>
 
-  <!-- టేబుల్ కింద హైలైట్ అయ్యే స్టేటస్ బాక్స్ -->
-  <div class="best-score-card">
+  <div class="best-score-card" id="bestCard">
     <span class="best-score-text" id="bestScoreText">Best Speed --:-- of 0 Attempts</span>
   </div>
 
   <div class="modal-overlay" id="resultModal">
-    <div class="modal-box">
-      <h3>🎉 Round Cleared!</h3>
+    <div class="modal-box" id="modalBox">
+      <h3 id="modalTitle">🎉 Round Cleared!</h3>
       <p id="modalMessage"></p>
       <button class="modal-btn" id="modalActionBtn">Next Round</button>
     </div>
   </div>
+
+  <canvas id="confettiCanvas"></canvas>
 
   <script>
     const GRID_SIZE = 10;
@@ -213,6 +261,14 @@
       "APPLE", "TIGER", "SOLAR", "ROBOT", "EARTH", 
       "PLANET", "ROCKET", "GALAXY", "STREAM", 
       "CRICKET", "NETWORK", "COMPASS", "UNIVERSE"
+    ];
+
+    const PRAISES = [
+      "🌟 Brilliant!", 
+      "🎯 Spot On!", 
+      "🔥 Awesome!", 
+      "👏 Excellent!", 
+      "⚡ Super Fast!"
     ];
 
     let totalAttempts = 0;
@@ -234,9 +290,14 @@
     const resetBtn = document.getElementById("resetBtn");
     const timerEl = document.getElementById("timer");
     const bestScoreText = document.getElementById("bestScoreText");
+    const toast = document.getElementById("toast");
     const resultModal = document.getElementById("resultModal");
+    const modalBox = document.getElementById("modalBox");
+    const modalTitle = document.getElementById("modalTitle");
     const modalMessage = document.getElementById("modalMessage");
     const modalActionBtn = document.getElementById("modalActionBtn");
+    const canvas = document.getElementById("confettiCanvas");
+    const ctx = canvas.getContext("2d");
 
     const DIRECTIONS = [
       { dr: 0,  dc: 1  },
@@ -248,6 +309,76 @@
       { dr: -1, dc: 1  },
       { dr: -1, dc: -1 }
     ];
+
+    // పదం దొరికినప్పుడు ఫ్లోటింగ్ అభినందనను చూపించడం
+    function showPraiseToast() {
+      const phrase = PRAISES[Math.floor(Math.random() * PRAISES.length)];
+      toast.textContent = phrase;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 900);
+    }
+
+    // కాన్ఫెట్టి సెలబ్రేషన్ యానిమేషన్
+    let particles = [];
+    let animationFrameId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfetti() {
+      particles = [];
+      const colors = ['#f1c40f', '#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#e67e22'];
+      for (let i = 0; i < 140; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          r: Math.random() * 5 + 3,
+          dx: (Math.random() - 0.5) * 14,
+          dy: (Math.random() - 0.5) * 14 - 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.random() * 10,
+          tiltAngle: 0,
+          tiltAngleInc: Math.random() * 0.08 + 0.04
+        });
+      }
+
+      cancelAnimationFrame(animationFrameId);
+      renderConfetti();
+    }
+
+    function renderConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let stillActive = false;
+
+      particles.forEach(p => {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.dy += 0.25; // Gravity
+        p.tiltAngle += p.tiltAngleInc;
+        p.tilt = Math.sin(p.tiltAngle) * 10;
+
+        if (p.y < canvas.height) stillActive = true;
+
+        ctx.beginPath();
+        ctx.lineWidth = p.r;
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt + p.r, p.y);
+        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+        ctx.stroke();
+      });
+
+      if (stillActive) {
+        animationFrameId = requestAnimationFrame(renderConfetti);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
 
     function formatTime(seconds) {
       const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -355,6 +486,8 @@
 
     function startNewRound() {
       resultModal.style.display = "none";
+      modalBox.classList.remove("record-breaker");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       isGameOver = false;
       foundWords.clear();
       selectedCells = [];
@@ -439,7 +572,10 @@
         });
         document.getElementById(`word-${matched}`).classList.add("found");
 
-        // అన్ని పదాలు దొరికినప్పుడు
+        // సరైన పదం దొరికినప్పుడు అభినందన మెసేజ్
+        showPraiseToast();
+
+        // రౌండ్ లోని అన్ని పదాలు పూర్తయినప్పుడు
         if (foundWords.size === activeWords.length) {
           handleGameWon();
         }
@@ -456,20 +592,33 @@
       isGameOver = true;
       totalAttempts++;
 
-      // అత్యంత తక్కువ సమయాన్ని రికార్డుగా భద్రపరచడం
-      if (bestTimeSeconds === null || elapsedSeconds < bestTimeSeconds) {
+      const isNewRecord = (bestTimeSeconds !== null && elapsedSeconds < bestTimeSeconds);
+      const isFirstAttempt = (bestTimeSeconds === null);
+
+      if (isFirstAttempt || isNewRecord) {
         bestTimeSeconds = elapsedSeconds;
       }
 
       updateBestScoreUI();
 
       setTimeout(() => {
-        modalMessage.textContent = `Completed in ${formatTime(elapsedSeconds)}!`;
+        if (isNewRecord) {
+          // మునుపటి రికార్డు సమయాన్ని బ్రేక్ చేసినప్పుడు సెలబ్రేషన్
+          triggerConfetti();
+          modalBox.classList.add("record-breaker");
+          modalTitle.textContent = "⚡ NEW RECORD!";
+          modalMessage.innerHTML = `Unbelievable! You broke your previous best record!<br><br>New Best Time: <b>${formatTime(elapsedSeconds)}</b>`;
+        } else {
+          modalBox.classList.remove("record-breaker");
+          modalTitle.textContent = "🎉 Round Cleared!";
+          modalMessage.innerHTML = `Completed in <b>${formatTime(elapsedSeconds)}</b>.`;
+        }
+
         resultModal.style.display = "flex";
-      }, 300);
+      }, 350);
     }
 
-    // టచ్ & మౌస్ ఈవెంట్స్
+    // టచ్ మరియు మౌస్ ఈవెంట్లు
     gridEl.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       startSelection(getCellFromPoint(t.clientX, t.clientY));
