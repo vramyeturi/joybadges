@@ -16,49 +16,39 @@
       -webkit-user-select: none;
       touch-action: none;
       margin: 0;
-      padding: 16px 10px;
+      padding: 16px 10px 30px;
       min-height: 100vh;
       box-sizing: border-box;
     }
 
     h2 {
-      margin: 0 0 8px 0;
+      margin: 0 0 10px 0;
       color: #f1f2f6;
       letter-spacing: 1px;
     }
 
-    /* Scoreboard & Setup Info Bar */
-    .status-panel {
+    .top-bar {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 16px;
+      margin-bottom: 14px;
     }
 
-    .badge {
+    .timer-badge {
       background: #1e1e24;
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 8px;
       border: 1px solid #333;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
-    }
-
-    .series-badge { color: #f39c12; }
-    .timer-badge { color: #00d2d3; }
-    .timer-badge.warning { color: #e74c3c; animation: blink 1s infinite; }
-
-    @keyframes blink {
-      50% { opacity: 0.5; }
+      color: #00d2d3;
     }
 
     .reset-btn {
       background-color: #ff4757;
       color: white;
       border: none;
-      padding: 7px 15px;
+      padding: 8px 16px;
       font-size: 13px;
       font-weight: bold;
       border-radius: 6px;
@@ -68,7 +58,6 @@
     }
     .reset-btn:active { transform: scale(0.95); }
 
-    /* Word Targets List */
     .word-list {
       display: flex;
       flex-wrap: wrap;
@@ -96,7 +85,6 @@
       transform: scale(0.96);
     }
 
-    /* Outer Container Padding */
     .grid-container {
       background: #1e1e24;
       padding: 16px;
@@ -135,7 +123,23 @@
       color: white;
     }
 
-    /* Dialog Modal */
+    /* టేబుల్ కింద హైలైట్ బ్యానర్ */
+    .best-score-card {
+      margin-top: 18px;
+      background: linear-gradient(135deg, #242b35 0%, #171b21 100%);
+      border: 1.5px solid #f39c12;
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(243, 156, 18, 0.25);
+      text-align: center;
+    }
+    .best-score-text {
+      color: #f1c40f;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -153,12 +157,12 @@
       padding: 24px;
       border-radius: 12px;
       text-align: center;
-      border: 1px solid #3a3f47;
+      border: 1px solid #10ac84;
       box-shadow: 0 10px 25px rgba(0,0,0,0.8);
       max-width: 300px;
       width: 85%;
     }
-    .modal-box h3 { margin: 0 0 10px 0; font-size: 22px; }
+    .modal-box h3 { margin: 0 0 10px 0; color: #10ac84; font-size: 22px; }
     .modal-box p { margin: 0 0 18px 0; color: #c8d6e5; font-size: 14px; line-height: 1.4; }
     .modal-btn {
       background: #10ac84;
@@ -176,12 +180,9 @@
 
   <h2>Word Search (10x10)</h2>
 
-  <div class="status-panel">
-    <!-- Series info: Best of ?, Score -->
-    <div class="badge series-badge" id="seriesTracker">Best of 3: 0 / 2 Wins</div>
-    <!-- Countdown Timer: ? Minutes -->
-    <div class="badge timer-badge" id="timerBox">⏱️ Time Left: <span id="timer">02:00</span></div>
-    <button class="reset-btn" id="resetBtn">🔄 Restart Round</button>
+  <div class="top-bar">
+    <div class="timer-badge">⏱️ Time: <span id="timer">00:00</span></div>
+    <button class="reset-btn" id="resetBtn">🔄 New Game</button>
   </div>
 
   <div class="word-list" id="wordList"></div>
@@ -190,23 +191,23 @@
     <div id="grid"></div>
   </div>
 
-  <!-- End of Round / Series Modal -->
+  <!-- టేబుల్ కింద హైలైట్ అయ్యే స్టేటస్ బాక్స్ -->
+  <div class="best-score-card">
+    <span class="best-score-text" id="bestScoreText">Best Speed --:-- of 0 Attempts</span>
+  </div>
+
   <div class="modal-overlay" id="resultModal">
     <div class="modal-box">
-      <h3 id="modalTitle">Round Finished</h3>
+      <h3>🎉 Round Cleared!</h3>
       <p id="modalMessage"></p>
       <button class="modal-btn" id="modalActionBtn">Next Round</button>
     </div>
   </div>
 
   <script>
-    // --- Configuration Settings ---
     const GRID_SIZE = 10;
-    const TIME_LIMIT_MINUTES = 2; // Set game duration (? Minutes)
-    const BEST_OF_SERIES = 3;     // Set series length (Best of ?)
-    const WORDS_COUNT = 5;        // Number of target words placed per round
-    
-    // Target word bank (Words of varying length: 3 to 9 characters)
+    const WORDS_COUNT = 5;
+
     const MASTER_WORDS = [
       "CAT", "SUN", "MOON", "MARS",
       "APPLE", "TIGER", "SOLAR", "ROBOT", "EARTH", 
@@ -214,11 +215,8 @@
       "CRICKET", "NETWORK", "COMPASS", "UNIVERSE"
     ];
 
-    // --- State Variables ---
-    const winsNeeded = Math.floor(BEST_OF_SERIES / 2) + 1;
-    let roundWins = 0;
-    let roundLosses = 0;
-    let currentRound = 1;
+    let totalAttempts = 0;
+    let bestTimeSeconds = null;
 
     let activeWords = [];
     let grid = [];
@@ -228,59 +226,42 @@
     const foundWords = new Set();
 
     let timerInterval = null;
-    let totalSecondsLeft = TIME_LIMIT_MINUTES * 60;
+    let elapsedSeconds = 0;
     let isGameOver = false;
 
-    // --- DOM Elements ---
     const gridEl = document.getElementById("grid");
     const wordListEl = document.getElementById("wordList");
     const resetBtn = document.getElementById("resetBtn");
     const timerEl = document.getElementById("timer");
-    const timerBox = document.getElementById("timerBox");
-    const seriesTrackerEl = document.getElementById("seriesTracker");
+    const bestScoreText = document.getElementById("bestScoreText");
     const resultModal = document.getElementById("resultModal");
-    const modalTitle = document.getElementById("modalTitle");
     const modalMessage = document.getElementById("modalMessage");
     const modalActionBtn = document.getElementById("modalActionBtn");
 
-    // 8 Valid Search Directions: Horizontal, Vertical, Diagonal
     const DIRECTIONS = [
-      { dr: 0,  dc: 1  }, // Right
-      { dr: 1,  dc: 0  }, // Down
-      { dr: 1,  dc: 1  }, // Down-Right
-      { dr: 1,  dc: -1 }, // Down-Left
-      { dr: 0,  dc: -1 }, // Left
-      { dr: -1, dc: 0  }, // Up
-      { dr: -1, dc: 1  }, // Up-Right
-      { dr: -1, dc: -1 }  // Up-Left
+      { dr: 0,  dc: 1  },
+      { dr: 1,  dc: 0  },
+      { dr: 1,  dc: 1  },
+      { dr: 1,  dc: -1 },
+      { dr: 0,  dc: -1 },
+      { dr: -1, dc: 0  },
+      { dr: -1, dc: 1  },
+      { dr: -1, dc: -1 }
     ];
 
-    // --- Timer Handling ---
-    function updateTimerDisplay() {
-      const mins = String(Math.floor(totalSecondsLeft / 60)).padStart(2, '0');
-      const secs = String(totalSecondsLeft % 60).padStart(2, '0');
-      timerEl.textContent = `${mins}:${secs}`;
-
-      // Visual warning when under 30 seconds
-      if (totalSecondsLeft <= 30) {
-        timerBox.classList.add("warning");
-      } else {
-        timerBox.classList.remove("warning");
-      }
+    function formatTime(seconds) {
+      const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      return `${mins}:${secs}`;
     }
 
-    function startCountdownTimer() {
+    function startTimer() {
       clearInterval(timerInterval);
-      totalSecondsLeft = TIME_LIMIT_MINUTES * 60;
-      updateTimerDisplay();
-
+      elapsedSeconds = 0;
+      timerEl.textContent = "00:00";
       timerInterval = setInterval(() => {
-        if (totalSecondsLeft > 0) {
-          totalSecondsLeft--;
-          updateTimerDisplay();
-        } else {
-          handleTimeExpired();
-        }
+        elapsedSeconds++;
+        timerEl.textContent = formatTime(elapsedSeconds);
       }, 1000);
     }
 
@@ -288,13 +269,15 @@
       clearInterval(timerInterval);
     }
 
-    // --- Game Logic ---
-    function updateScoreboard() {
-      seriesTrackerEl.textContent = `Best of ${BEST_OF_SERIES} (Round ${currentRound}): ${roundWins}W - ${roundLosses}L`;
+    function updateBestScoreUI() {
+      if (bestTimeSeconds !== null) {
+        bestScoreText.textContent = `Best Speed ${formatTime(bestTimeSeconds)} of ${totalAttempts} Attempts`;
+      } else {
+        bestScoreText.textContent = `Best Speed --:-- of ${totalAttempts} Attempts`;
+      }
     }
 
     function pickRandomWords() {
-      // Filter words fitting inside the 10x10 bounds, then shuffle
       const eligible = MASTER_WORDS.filter(w => w.length <= GRID_SIZE);
       const shuffled = [...eligible].sort(() => 0.5 - Math.random());
       activeWords = shuffled.slice(0, WORDS_COUNT);
@@ -337,7 +320,6 @@
         }
       });
 
-      // Fill remaining gaps with random letters
       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
@@ -379,21 +361,12 @@
       isSelecting = false;
       startCell = null;
 
-      updateScoreboard();
       pickRandomWords();
       placeWords();
       renderUI();
-      startCountdownTimer();
+      startTimer();
     }
 
-    function resetEntireSeries() {
-      roundWins = 0;
-      roundLosses = 0;
-      currentRound = 1;
-      startNewRound();
-    }
-
-    // --- Selection Vector Math ---
     function getCell(r, c) {
       return document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
     }
@@ -466,9 +439,9 @@
         });
         document.getElementById(`word-${matched}`).classList.add("found");
 
-        // Check if all targets found in this round
+        // అన్ని పదాలు దొరికినప్పుడు
         if (foundWords.size === activeWords.length) {
-          handleRoundWon();
+          handleGameWon();
         }
       } else {
         selectedCells.forEach(c => c.classList.remove("selected"));
@@ -478,52 +451,25 @@
       startCell = null;
     }
 
-    // --- Win / Loss Event Handlers ---
-    function handleRoundWon() {
+    function handleGameWon() {
       stopTimer();
       isGameOver = true;
-      roundWins++;
+      totalAttempts++;
+
+      // అత్యంత తక్కువ సమయాన్ని రికార్డుగా భద్రపరచడం
+      if (bestTimeSeconds === null || elapsedSeconds < bestTimeSeconds) {
+        bestTimeSeconds = elapsedSeconds;
+      }
+
+      updateBestScoreUI();
 
       setTimeout(() => {
-        if (roundWins === winsNeeded) {
-          // Player won the series
-          modalTitle.textContent = "🏆 Series Champion!";
-          modalMessage.textContent = `You won ${roundWins} out of ${BEST_OF_SERIES} rounds!`;
-          modalActionBtn.textContent = "Play New Series";
-          modalActionBtn.onclick = resetEntireSeries;
-        } else {
-          modalTitle.textContent = "🎉 Round Cleared!";
-          modalMessage.textContent = `You found all words with ${timerEl.textContent} remaining.`;
-          modalActionBtn.textContent = "Next Round";
-          modalActionBtn.onclick = () => { currentRound++; startNewRound(); };
-        }
+        modalMessage.textContent = `Completed in ${formatTime(elapsedSeconds)}!`;
         resultModal.style.display = "flex";
       }, 300);
     }
 
-    function handleTimeExpired() {
-      stopTimer();
-      isGameOver = true;
-      roundLosses++;
-
-      setTimeout(() => {
-        if (roundLosses === winsNeeded) {
-          // Series lost
-          modalTitle.textContent = "❌ Series Over";
-          modalMessage.textContent = `Time ran out! You reached ${roundLosses} losses. Better luck next time!`;
-          modalActionBtn.textContent = "Try Series Again";
-          modalActionBtn.onclick = resetEntireSeries;
-        } else {
-          modalTitle.textContent = "⏰ Time's Up!";
-          modalMessage.textContent = `You ran out of time in Round ${currentRound}.`;
-          modalActionBtn.textContent = "Next Round";
-          modalActionBtn.onclick = () => { currentRound++; startNewRound(); };
-        }
-        resultModal.style.display = "flex";
-      }, 300);
-    }
-
-    // Touch & Mouse Events
+    // టచ్ & మౌస్ ఈవెంట్స్
     gridEl.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       startSelection(getCellFromPoint(t.clientX, t.clientY));
@@ -544,9 +490,10 @@
     window.addEventListener("mouseup", endSelection);
 
     resetBtn.addEventListener("click", startNewRound);
+    modalActionBtn.addEventListener("click", startNewRound);
 
-    // Initialize Game
-    resetEntireSeries();
+    updateBestScoreUI();
+    startNewRound();
   </script>
 </body>
 </html>
