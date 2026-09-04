@@ -1,83 +1,92 @@
 <!DOCTYPE html>
-<html lang="te">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>10x10 Word Search Puzzle (Dark Theme)</title>
+  <title>10x10 Word Search Puzzle</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background-color: #121212; /* బ్లాక్ థీమ్ బ్యాక్‌గ్రౌండ్ */
+      background-color: #121212;
       color: #ffffff;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
       margin: 0;
-      padding: 20px 10px;
+      padding: 16px 10px;
       min-height: 100vh;
       box-sizing: border-box;
     }
 
     h2 {
-      margin: 0 0 10px 0;
+      margin: 0 0 8px 0;
       color: #f1f2f6;
       letter-spacing: 1px;
     }
 
-    .top-bar {
+    /* Scoreboard & Setup Info Bar */
+    .status-panel {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       align-items: center;
-      gap: 20px;
-      margin-bottom: 15px;
+      gap: 12px;
+      margin-bottom: 12px;
     }
 
-    .timer-box {
-      font-size: 16px;
-      font-weight: bold;
-      background: #1e1e1e;
-      padding: 8px 16px;
+    .badge {
+      background: #1e1e24;
+      padding: 6px 12px;
       border-radius: 8px;
       border: 1px solid #333;
-      color: #00d2d3;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .series-badge { color: #f39c12; }
+    .timer-badge { color: #00d2d3; }
+    .timer-badge.warning { color: #e74c3c; animation: blink 1s infinite; }
+
+    @keyframes blink {
+      50% { opacity: 0.5; }
     }
 
     .reset-btn {
       background-color: #ff4757;
       color: white;
       border: none;
-      padding: 9px 18px;
-      font-size: 14px;
+      padding: 7px 15px;
+      font-size: 13px;
       font-weight: bold;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3);
+      box-shadow: 0 3px 8px rgba(255, 71, 87, 0.3);
       transition: background 0.2s, transform 0.1s;
     }
-    .reset-btn:active {
-      transform: scale(0.95);
-    }
+    .reset-btn:active { transform: scale(0.95); }
 
+    /* Word Targets List */
     .word-list {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       max-width: 360px;
     }
     .word-list span {
-      padding: 5px 10px;
+      padding: 4px 9px;
       background: #23272a;
       border: 1px solid #3a3f47;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 1px;
       color: #c8d6e5;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
     }
     .word-list span.found {
       text-decoration: line-through;
@@ -87,7 +96,7 @@
       transform: scale(0.96);
     }
 
-    /* టేబుల్ చుట్టూ స్పేసింగ్ & ప్యాడింగ్ */
+    /* Outer Container Padding */
     .grid-container {
       background: #1e1e24;
       padding: 16px;
@@ -111,22 +120,22 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: bold;
       border-radius: 4px;
       cursor: pointer;
       transition: background 0.1s ease;
     }
     .cell.selected {
-      background: #ffa502; /* డ్రాగ్ చేసినప్పుడు గోల్డ్ / ఆరెంజ్ రంగు */
+      background: #ffa502;
       color: #000;
     }
     .cell.found {
-      background: #10ac84; /* దొరికిన పదాలకు ఆకుపచ్చ రంగు */
-      color: #ffffff;
+      background: #10ac84;
+      color: white;
     }
 
-    /* విన్ పాపప్ అలర్ట్ */
+    /* Dialog Modal */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -144,28 +153,22 @@
       padding: 24px;
       border-radius: 12px;
       text-align: center;
-      border: 1px solid #10ac84;
+      border: 1px solid #3a3f47;
       box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-      max-width: 280px;
+      max-width: 300px;
+      width: 85%;
     }
-    .modal-box h3 {
-      margin: 0 0 10px 0;
-      color: #10ac84;
-      font-size: 22px;
-    }
-    .modal-box p {
-      margin: 0 0 18px 0;
-      color: #c8d6e5;
-      font-size: 14px;
-    }
+    .modal-box h3 { margin: 0 0 10px 0; font-size: 22px; }
+    .modal-box p { margin: 0 0 18px 0; color: #c8d6e5; font-size: 14px; line-height: 1.4; }
     .modal-btn {
       background: #10ac84;
       color: white;
       border: none;
-      padding: 8px 18px;
+      padding: 9px 20px;
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -173,9 +176,12 @@
 
   <h2>Word Search (10x10)</h2>
 
-  <div class="top-bar">
-    <div class="timer-box">⏱️ <span id="timer">00:00</span></div>
-    <button class="reset-btn" id="resetBtn">🔄 New Game</button>
+  <div class="status-panel">
+    <!-- Series info: Best of ?, Score -->
+    <div class="badge series-badge" id="seriesTracker">Best of 3: 0 / 2 Wins</div>
+    <!-- Countdown Timer: ? Minutes -->
+    <div class="badge timer-badge" id="timerBox">⏱️ Time Left: <span id="timer">02:00</span></div>
+    <button class="reset-btn" id="resetBtn">🔄 Restart Round</button>
   </div>
 
   <div class="word-list" id="wordList"></div>
@@ -184,25 +190,36 @@
     <div id="grid"></div>
   </div>
 
-  <div class="modal-overlay" id="winModal">
+  <!-- End of Round / Series Modal -->
+  <div class="modal-overlay" id="resultModal">
     <div class="modal-box">
-      <h3>🎉 You Win!</h3>
-      <p id="winMessage">అన్ని పదాలను కనుగొన్నారు!</p>
-      <button class="modal-btn" id="playAgainBtn">మళ్లీ ఆడండి</button>
+      <h3 id="modalTitle">Round Finished</h3>
+      <p id="modalMessage"></p>
+      <button class="modal-btn" id="modalActionBtn">Next Round</button>
     </div>
   </div>
 
   <script>
+    // --- Configuration Settings ---
     const GRID_SIZE = 10;
+    const TIME_LIMIT_MINUTES = 2; // Set game duration (? Minutes)
+    const BEST_OF_SERIES = 3;     // Set series length (Best of ?)
+    const WORDS_COUNT = 5;        // Number of target words placed per round
     
-    // పెద్ద వర్డ్ బ్యాంక్ - రీసెట్ చేసిన ప్రతిసారీ ఇందులోంచి రాండమ్‌గా 5 పదాలు ఎంపికవుతాయి
+    // Target word bank (Words of varying length: 3 to 9 characters)
     const MASTER_WORDS = [
-      "TIGER", "MANGO", "SOLAR", "ROBOT", "EARTH", 
-      "SPACE", "CLOUD", "WATER", "GREEN", "SMART", 
-      "BRAIN", "POWER", "LIGHT", "STORM", "PLANT",
-      "ORANGE", "ELEPHANT"
+      "CAT", "SUN", "MOON", "MARS",
+      "APPLE", "TIGER", "SOLAR", "ROBOT", "EARTH", 
+      "PLANET", "ROCKET", "GALAXY", "STREAM", 
+      "CRICKET", "NETWORK", "COMPASS", "UNIVERSE",
+      "ORANGE", "INDIA", "GRAPES", "FOOTBALL", "NAME"
     ];
-    const WORDS_COUNT = 5;
+
+    // --- State Variables ---
+    const winsNeeded = Math.floor(BEST_OF_SERIES / 2) + 1;
+    let roundWins = 0;
+    let roundLosses = 0;
+    let currentRound = 1;
 
     let activeWords = [];
     let grid = [];
@@ -212,37 +229,59 @@
     const foundWords = new Set();
 
     let timerInterval = null;
-    let secondsElapsed = 0;
+    let totalSecondsLeft = TIME_LIMIT_MINUTES * 60;
+    let isGameOver = false;
 
+    // --- DOM Elements ---
     const gridEl = document.getElementById("grid");
     const wordListEl = document.getElementById("wordList");
     const resetBtn = document.getElementById("resetBtn");
     const timerEl = document.getElementById("timer");
-    const winModal = document.getElementById("winModal");
-    const winMessage = document.getElementById("winMessage");
-    const playAgainBtn = document.getElementById("playAgainBtn");
+    const timerBox = document.getElementById("timerBox");
+    const seriesTrackerEl = document.getElementById("seriesTracker");
+    const resultModal = document.getElementById("resultModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalMessage = document.getElementById("modalMessage");
+    const modalActionBtn = document.getElementById("modalActionBtn");
 
+    // 8 Valid Search Directions: Horizontal, Vertical, Diagonal
     const DIRECTIONS = [
-      { dr: 0,  dc: 1  },
-      { dr: 1,  dc: 0  },
-      { dr: 1,  dc: 1  },
-      { dr: 1,  dc: -1 },
-      { dr: 0,  dc: -1 },
-      { dr: -1, dc: 0  },
-      { dr: -1, dc: 1  },
-      { dr: -1, dc: -1 }
+      { dr: 0,  dc: 1  }, // Right
+      { dr: 1,  dc: 0  }, // Down
+      { dr: 1,  dc: 1  }, // Down-Right
+      { dr: 1,  dc: -1 }, // Down-Left
+      { dr: 0,  dc: -1 }, // Left
+      { dr: -1, dc: 0  }, // Up
+      { dr: -1, dc: 1  }, // Up-Right
+      { dr: -1, dc: -1 }  // Up-Left
     ];
 
-    // టైమర్ మేనేజ్‌మెంట్
-    function startTimer() {
+    // --- Timer Handling ---
+    function updateTimerDisplay() {
+      const mins = String(Math.floor(totalSecondsLeft / 60)).padStart(2, '0');
+      const secs = String(totalSecondsLeft % 60).padStart(2, '0');
+      timerEl.textContent = `${mins}:${secs}`;
+
+      // Visual warning when under 30 seconds
+      if (totalSecondsLeft <= 30) {
+        timerBox.classList.add("warning");
+      } else {
+        timerBox.classList.remove("warning");
+      }
+    }
+
+    function startCountdownTimer() {
       clearInterval(timerInterval);
-      secondsElapsed = 0;
-      timerEl.textContent = "00:00";
+      totalSecondsLeft = TIME_LIMIT_MINUTES * 60;
+      updateTimerDisplay();
+
       timerInterval = setInterval(() => {
-        secondsElapsed++;
-        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-        const secs = String(secondsElapsed % 60).padStart(2, '0');
-        timerEl.textContent = `${mins}:${secs}`;
+        if (totalSecondsLeft > 0) {
+          totalSecondsLeft--;
+          updateTimerDisplay();
+        } else {
+          handleTimeExpired();
+        }
       }, 1000);
     }
 
@@ -250,9 +289,15 @@
       clearInterval(timerInterval);
     }
 
-    // రాండమ్ పదాలను గ్రిడ్‌లో సెట్ చేయడం
+    // --- Game Logic ---
+    function updateScoreboard() {
+      seriesTrackerEl.textContent = `Best of ${BEST_OF_SERIES} (Round ${currentRound}): ${roundWins}W - ${roundLosses}L`;
+    }
+
     function pickRandomWords() {
-      const shuffled = [...MASTER_WORDS].sort(() => 0.5 - Math.random());
+      // Filter words fitting inside the 10x10 bounds, then shuffle
+      const eligible = MASTER_WORDS.filter(w => w.length <= GRID_SIZE);
+      const shuffled = [...eligible].sort(() => 0.5 - Math.random());
       activeWords = shuffled.slice(0, WORDS_COUNT);
     }
 
@@ -293,6 +338,7 @@
         }
       });
 
+      // Fill remaining gaps with random letters
       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
@@ -326,21 +372,29 @@
       }
     }
 
-    function resetGame() {
-      winModal.style.display = "none";
+    function startNewRound() {
+      resultModal.style.display = "none";
+      isGameOver = false;
       foundWords.clear();
       selectedCells = [];
       isSelecting = false;
       startCell = null;
+
+      updateScoreboard();
       pickRandomWords();
       placeWords();
       renderUI();
-      startTimer();
+      startCountdownTimer();
     }
 
-    resetBtn.addEventListener("click", resetGame);
-    playAgainBtn.addEventListener("click", resetGame);
+    function resetEntireSeries() {
+      roundWins = 0;
+      roundLosses = 0;
+      currentRound = 1;
+      startNewRound();
+    }
 
+    // --- Selection Vector Math ---
     function getCell(r, c) {
       return document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
     }
@@ -350,16 +404,15 @@
       return el && el.classList.contains("cell") ? el : null;
     }
 
-    // సెలెక్షన్ లాజిక్
     function startSelection(cell) {
-      if (!cell) return;
+      if (!cell || isGameOver) return;
       isSelecting = true;
       startCell = cell;
       highlightLine(cell);
     }
 
     function updateSelection(cell) {
-      if (!isSelecting || !cell || !startCell) return;
+      if (!isSelecting || !cell || !startCell || isGameOver) return;
       highlightLine(cell);
     }
 
@@ -398,7 +451,7 @@
     }
 
     function endSelection() {
-      if (!isSelecting) return;
+      if (!isSelecting || isGameOver) return;
       isSelecting = false;
 
       const currentWord = selectedCells.map(c => c.textContent).join("");
@@ -414,13 +467,9 @@
         });
         document.getElementById(`word-${matched}`).classList.add("found");
 
-        // గేమ్ గెలిచారా లేదా చెక్ చేయడం
+        // Check if all targets found in this round
         if (foundWords.size === activeWords.length) {
-          stopTimer();
-          setTimeout(() => {
-            winMessage.textContent = `మీరు ${timerEl.textContent} సమయంలో అన్ని పదాలను కనుగొన్నారు!`;
-            winModal.style.display = "flex";
-          }, 300);
+          handleRoundWon();
         }
       } else {
         selectedCells.forEach(c => c.classList.remove("selected"));
@@ -430,7 +479,52 @@
       startCell = null;
     }
 
-    // టచ్ ఈవెంట్‌లు
+    // --- Win / Loss Event Handlers ---
+    function handleRoundWon() {
+      stopTimer();
+      isGameOver = true;
+      roundWins++;
+
+      setTimeout(() => {
+        if (roundWins === winsNeeded) {
+          // Player won the series
+          modalTitle.textContent = "🏆 Series Champion!";
+          modalMessage.textContent = `You won ${roundWins} out of ${BEST_OF_SERIES} rounds!`;
+          modalActionBtn.textContent = "Play New Series";
+          modalActionBtn.onclick = resetEntireSeries;
+        } else {
+          modalTitle.textContent = "🎉 Round Cleared!";
+          modalMessage.textContent = `You found all words with ${timerEl.textContent} remaining.`;
+          modalActionBtn.textContent = "Next Round";
+          modalActionBtn.onclick = () => { currentRound++; startNewRound(); };
+        }
+        resultModal.style.display = "flex";
+      }, 300);
+    }
+
+    function handleTimeExpired() {
+      stopTimer();
+      isGameOver = true;
+      roundLosses++;
+
+      setTimeout(() => {
+        if (roundLosses === winsNeeded) {
+          // Series lost
+          modalTitle.textContent = "❌ Series Over";
+          modalMessage.textContent = `Time ran out! You reached ${roundLosses} losses. Better luck next time!`;
+          modalActionBtn.textContent = "Try Series Again";
+          modalActionBtn.onclick = resetEntireSeries;
+        } else {
+          modalTitle.textContent = "⏰ Time's Up!";
+          modalMessage.textContent = `You ran out of time in Round ${currentRound}.`;
+          modalActionBtn.textContent = "Next Round";
+          modalActionBtn.onclick = () => { currentRound++; startNewRound(); };
+        }
+        resultModal.style.display = "flex";
+      }, 300);
+    }
+
+    // Touch & Mouse Events
     gridEl.addEventListener("touchstart", (e) => {
       const t = e.touches[0];
       startSelection(getCellFromPoint(t.clientX, t.clientY));
@@ -444,15 +538,16 @@
 
     window.addEventListener("touchend", endSelection);
 
-    // మౌస్ ఈవెంట్‌లు
     gridEl.addEventListener("mousedown", (e) => startSelection(e.target));
     gridEl.addEventListener("mousemove", (e) => {
       if (isSelecting) updateSelection(e.target);
     });
     window.addEventListener("mouseup", endSelection);
 
-    // ఆట ప్రారంభం
-    resetGame();
+    resetBtn.addEventListener("click", startNewRound);
+
+    // Initialize Game
+    resetEntireSeries();
   </script>
 </body>
 </html>
