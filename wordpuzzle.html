@@ -3,140 +3,266 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>15x15 Word Search with Reset</title>
+  <title>10x10 Word Search Puzzle (Dark Theme)</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: #f4f6f9;
+      background-color: #121212; /* బ్లాక్ థీమ్ బ్యాక్‌గ్రౌండ్ */
+      color: #ffffff;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
-      margin: 10px;
+      margin: 0;
+      padding: 20px 10px;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
-    h2 { margin-bottom: 6px; }
-    
-    .controls {
-      margin-bottom: 12px;
+
+    h2 {
+      margin: 0 0 10px 0;
+      color: #f1f2f6;
+      letter-spacing: 1px;
     }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 15px;
+    }
+
+    .timer-box {
+      font-size: 16px;
+      font-weight: bold;
+      background: #1e1e1e;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      color: #00d2d3;
+    }
+
     .reset-btn {
-      background-color: #e74c3c;
+      background-color: #ff4757;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 9px 18px;
       font-size: 14px;
       font-weight: bold;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3);
       transition: background 0.2s, transform 0.1s;
     }
-    .reset-btn:hover {
-      background-color: #c0392b;
-    }
     .reset-btn:active {
-      transform: scale(0.96);
+      transform: scale(0.95);
     }
 
     .word-list {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
-      margin-bottom: 14px;
-      font-weight: bold;
-      max-width: 400px;
+      gap: 8px;
+      margin-bottom: 20px;
+      max-width: 360px;
     }
     .word-list span {
-      padding: 4px 8px;
-      background: #e2e8f0;
-      border-radius: 4px;
+      padding: 5px 10px;
+      background: #23272a;
+      border: 1px solid #3a3f47;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: #c8d6e5;
       transition: all 0.3s ease;
     }
     .word-list span.found {
       text-decoration: line-through;
-      background: #27ae60;
-      color: white;
+      background: #10ac84;
+      border-color: #10ac84;
+      color: #ffffff;
+      transform: scale(0.96);
     }
+
+    /* టేబుల్ చుట్టూ స్పేసింగ్ & ప్యాడింగ్ */
+    .grid-container {
+      background: #1e1e24;
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      border: 1px solid #2f3542;
+    }
+
     #grid {
       display: grid;
-      grid-template-columns: repeat(15, 24px);
-      grid-template-rows: repeat(15, 24px);
-      gap: 2px;
-      background: #2d3748;
-      padding: 4px;
-      border-radius: 6px;
+      grid-template-columns: repeat(10, 30px);
+      grid-template-rows: repeat(10, 30px);
+      gap: 3px;
     }
+
     .cell {
-      width: 24px;
-      height: 24px;
-      background: #ffffff;
+      width: 30px;
+      height: 30px;
+      background: #2f3542;
+      color: #f1f2f6;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: bold;
-      border-radius: 2px;
+      border-radius: 4px;
+      cursor: pointer;
       transition: background 0.1s ease;
     }
     .cell.selected {
-      background: #f1c40f; /* డ్రాగ్ చేస్తున్నప్పుడు పసుపు రంగు */
+      background: #ffa502; /* డ్రాగ్ చేసినప్పుడు గోల్డ్ / ఆరెంజ్ రంగు */
       color: #000;
     }
     .cell.found {
-      background: #2ecc71; /* సరైన పదం దొరికితే ఆకుపచ్చ రంగు */
+      background: #10ac84; /* దొరికిన పదాలకు ఆకుపచ్చ రంగు */
+      color: #ffffff;
+    }
+
+    /* విన్ పాపప్ అలర్ట్ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-box {
+      background: #1e1e24;
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #10ac84;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      max-width: 280px;
+    }
+    .modal-box h3 {
+      margin: 0 0 10px 0;
+      color: #10ac84;
+      font-size: 22px;
+    }
+    .modal-box p {
+      margin: 0 0 18px 0;
+      color: #c8d6e5;
+      font-size: 14px;
+    }
+    .modal-btn {
+      background: #10ac84;
       color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <h2>Word Search (15x15)</h2>
-  
-  <div class="controls">
-    <button class="reset-btn" id="resetBtn">🔄 Reset Game</button>
+  <h2>Word Search (10x10)</h2>
+
+  <div class="top-bar">
+    <div class="timer-box">⏱️ <span id="timer">00:00</span></div>
+    <button class="reset-btn" id="resetBtn">🔄 New Game</button>
   </div>
 
   <div class="word-list" id="wordList"></div>
-  <div id="grid"></div>
+
+  <div class="grid-container">
+    <div id="grid"></div>
+  </div>
+
+  <div class="modal-overlay" id="winModal">
+    <div class="modal-box">
+      <h3>🎉 You Win!</h3>
+      <p id="winMessage">అన్ని పదాలను కనుగొన్నారు!</p>
+      <button class="modal-btn" id="playAgainBtn">మళ్లీ ఆడండి</button>
+    </div>
+  </div>
 
   <script>
-    const GRID_SIZE = 15;
-    const WORDS = ["APPLE", "TIGER", "MANGO", "SOLAR", "ROBOT", "COSMOS", "NATURE"];
+    const GRID_SIZE = 10;
     
+    // పెద్ద వర్డ్ బ్యాంక్ - రీసెట్ చేసిన ప్రతిసారీ ఇందులోంచి రాండమ్‌గా 5 పదాలు ఎంపికవుతాయి
+    const MASTER_WORDS = [
+      "TIGER", "MANGO", "SOLAR", "ROBOT", "EARTH", 
+      "SPACE", "CLOUD", "WATER", "GREEN", "SMART", 
+      "BRAIN", "POWER", "LIGHT", "STORM", "PLANT"
+    ];
+    const WORDS_COUNT = 5;
+
+    let activeWords = [];
     let grid = [];
     let isSelecting = false;
     let startCell = null;
     let selectedCells = [];
     const foundWords = new Set();
 
+    let timerInterval = null;
+    let secondsElapsed = 0;
+
     const gridEl = document.getElementById("grid");
     const wordListEl = document.getElementById("wordList");
     const resetBtn = document.getElementById("resetBtn");
+    const timerEl = document.getElementById("timer");
+    const winModal = document.getElementById("winModal");
+    const winMessage = document.getElementById("winMessage");
+    const playAgainBtn = document.getElementById("playAgainBtn");
 
-    // 8 దిశలు: అడ్డంగా, నిలువుగా, మరియు 4 డయాగ్నల్స్
     const DIRECTIONS = [
-      { dr: 0,  dc: 1  }, // Horizontal Right
-      { dr: 1,  dc: 0  }, // Vertical Down
-      { dr: 1,  dc: 1  }, // Diagonal Down-Right
-      { dr: 1,  dc: -1 }, // Diagonal Down-Left
-      { dr: 0,  dc: -1 }, // Horizontal Left
-      { dr: -1, dc: 0  }, // Vertical Up
-      { dr: -1, dc: 1  }, // Diagonal Up-Right
-      { dr: -1, dc: -1 }  // Diagonal Up-Left
+      { dr: 0,  dc: 1  },
+      { dr: 1,  dc: 0  },
+      { dr: 1,  dc: 1  },
+      { dr: 1,  dc: -1 },
+      { dr: 0,  dc: -1 },
+      { dr: -1, dc: 0  },
+      { dr: -1, dc: 1  },
+      { dr: -1, dc: -1 }
     ];
 
-    // 1. పదాలను సెట్ చేయడం మరియు రాండమ్ అక్షరాలను నింపడం
+    // టైమర్ మేనేజ్‌మెంట్
+    function startTimer() {
+      clearInterval(timerInterval);
+      secondsElapsed = 0;
+      timerEl.textContent = "00:00";
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        timerEl.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    // రాండమ్ పదాలను గ్రిడ్‌లో సెట్ చేయడం
+    function pickRandomWords() {
+      const shuffled = [...MASTER_WORDS].sort(() => 0.5 - Math.random());
+      activeWords = shuffled.slice(0, WORDS_COUNT);
+    }
+
     function placeWords() {
       grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(''));
 
-      WORDS.forEach(word => {
+      activeWords.forEach(word => {
         let placed = false;
         let attempts = 0;
 
-        while (!placed && attempts < 500) {
+        while (!placed && attempts < 400) {
           attempts++;
           const dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
           const r = Math.floor(Math.random() * GRID_SIZE);
@@ -176,12 +302,11 @@
       }
     }
 
-    // 2. UI రెండర్ చేయడం
     function renderUI() {
       gridEl.innerHTML = '';
       wordListEl.innerHTML = '';
 
-      WORDS.forEach(w => {
+      activeWords.forEach(w => {
         const span = document.createElement("span");
         span.id = `word-${w}`;
         span.textContent = w;
@@ -200,17 +325,20 @@
       }
     }
 
-    // 3. రీసెట్ ఫంక్షన్
     function resetGame() {
+      winModal.style.display = "none";
       foundWords.clear();
       selectedCells = [];
       isSelecting = false;
       startCell = null;
+      pickRandomWords();
       placeWords();
       renderUI();
+      startTimer();
     }
 
     resetBtn.addEventListener("click", resetGame);
+    playAgainBtn.addEventListener("click", resetGame);
 
     function getCell(r, c) {
       return document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
@@ -221,7 +349,7 @@
       return el && el.classList.contains("cell") ? el : null;
     }
 
-    // 4. స్వైప్ మరియు సెలెక్షన్ లాజిక్
+    // సెలెక్షన్ లాజిక్
     function startSelection(cell) {
       if (!cell) return;
       isSelecting = true;
@@ -275,7 +403,7 @@
       const currentWord = selectedCells.map(c => c.textContent).join("");
       const reversedWord = selectedCells.map(c => c.textContent).reverse().join("");
 
-      const matched = WORDS.find(w => w === currentWord || w === reversedWord);
+      const matched = activeWords.find(w => w === currentWord || w === reversedWord);
 
       if (matched && !foundWords.has(matched)) {
         foundWords.add(matched);
@@ -284,6 +412,15 @@
           c.classList.add("found");
         });
         document.getElementById(`word-${matched}`).classList.add("found");
+
+        // గేమ్ గెలిచారా లేదా చెక్ చేయడం
+        if (foundWords.size === activeWords.length) {
+          stopTimer();
+          setTimeout(() => {
+            winMessage.textContent = `మీరు ${timerEl.textContent} సమయంలో అన్ని పదాలను కనుగొన్నారు!`;
+            winModal.style.display = "flex";
+          }, 300);
+        }
       } else {
         selectedCells.forEach(c => c.classList.remove("selected"));
       }
@@ -313,7 +450,7 @@
     });
     window.addEventListener("mouseup", endSelection);
 
-    // మొదటిసారి గేమ్‌ను ప్రారంభించడం
+    // ఆట ప్రారంభం
     resetGame();
   </script>
 </body>
