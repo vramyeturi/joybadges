@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsive Dark Sudoku</title>
+    <title>Responsive Sudoku - Guaranteed Unique Solution</title>
     <style>
-   :root {
+        :root {
             --bg-color: #222222;
             --card-bg: #ffffff;
             --text-color: #333333;
@@ -13,7 +13,7 @@
             --border-light: #cccccc;
             --selected-bg: #bbdefb;
             --initial-bg: #e0e0e0;
-            --initial-text: #444444;
+            --initial-text: #222222;
             --error-bg: #ffcdd2;
             --error-text: #c62828;
             --primary-color: #1976d2;
@@ -40,7 +40,7 @@
             background: var(--card-bg);
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             width: 100%;
             max-width: 450px;
             display: flex;
@@ -77,6 +77,7 @@
             border: none;
             flex-grow: 1;
             font-weight: bold;
+            transition: opacity 0.2s;
         }
 
         button:hover {
@@ -100,7 +101,7 @@
             gap: 1px;
         }
 
-        /* Individual Grid Cells - Default White */
+        /* Individual Grid Cells */
         .cell {
             background-color: #ffffff;
             display: flex;
@@ -113,7 +114,7 @@
             color: var(--text-color);
         }
 
-        /* 3x3 Grid Box Thickness Boundaries */
+        /* 3x3 Box Boundaries */
         .cell:nth-child(3n) { border-right: 2px solid var(--border-dark); }
         .cell:nth-child(9n) { border-right: none; }
         #board > .cell:nth-child(n+19):nth-child(-n+27),
@@ -121,10 +122,11 @@
             border-bottom: 2px solid var(--border-dark);
         }
 
-        /* Given Starting Numbers - Grey Background */
+        /* Starting Fixed Numbers */
         .cell.initial {
             background-color: var(--initial-bg);
             color: var(--initial-text);
+            cursor: not-allowed;
         }
 
         .cell.selected {
@@ -137,7 +139,7 @@
             animation: shake 0.2s ease-in-out;
         }
 
-        /* Input Deck Controls */
+        /* Numpad Input Controls */
         #digits {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -181,7 +183,7 @@
 <body>
     <div class="game-container">
         <h1>Sudoku</h1>
-        
+       
         <div class="controls">
             <select id="difficulty">
                 <option value="easy">Easy</option>
@@ -213,20 +215,9 @@
     </div>
 
     <script>
-        const SOLUTION = [
-            [5, 3, 4, 6, 7, 8, 9, 1, 2],
-            [6, 7, 2, 1, 9, 5, 3, 4, 8],
-            [1, 9, 8, 3, 4, 2, 5, 6, 7],
-            [8, 5, 9, 7, 6, 1, 4, 2, 3],
-            [4, 2, 6, 8, 5, 3, 7, 9, 1],
-            [7, 1, 3, 9, 2, 4, 8, 5, 6],
-            [9, 6, 1, 5, 3, 7, 2, 8, 4],
-            [2, 8, 7, 4, 1, 9, 6, 3, 5],
-            [3, 4, 5, 2, 8, 6, 1, 7, 9]
-        ];
-
         let boardSolution = [];
         let currentBoard = [];
+        let initialMask = [];
         let selectedCell = null;
         let errors = 0;
         const maxErrors = 3;
@@ -235,13 +226,13 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             setupGame();
-            
+           
             document.getElementById("new-game-btn").addEventListener("click", setupGame);
             document.getElementById("difficulty").addEventListener("change", setupGame);
-            
+           
             document.addEventListener("keydown", (e) => {
                 if (!selectedCell || selectedCell.classList.contains("initial")) return;
-                if (e.key >= 1 && e.key <= 9) {
+                if (e.key >= '1' && e.key <= '9') {
                     handleInput(parseInt(e.key));
                 } else if (e.key === "Backspace" || e.key === "Delete") {
                     handleInput(0);
@@ -257,8 +248,114 @@
             });
         });
 
+        /* --- SUDOKU LOGIC ENGINE --- */
+
+        // Check if placing num at grid[row][col] conforms to Sudoku rules
+        function isValid(grid, row, col, num) {
+            for (let i = 0; i < 9; i++) {
+                if (grid[row][i] === num) return false;
+                if (grid[i][col] === num) return false;
+                
+                const boxRow = 3 * Math.floor(row / 3) + Math.floor(i / 3);
+                const boxCol = 3 * Math.floor(col / 3) + (i % 3);
+                if (grid[boxRow][boxCol] === num) return false;
+            }
+            return true;
+        }
+
+        // Generate a random, fully solved 9x9 board from scratch
+        function fillBoardRandomly(grid) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (grid[r][c] === 0) {
+                        const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+                        for (let num of nums) {
+                            if (isValid(grid, r, c, num)) {
+                                grid[r][c] = num;
+                                if (fillBoardRandomly(grid)) return true;
+                                grid[r][c] = 0;
+                            }
+                        }
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Count solutions up to 2 (stops early if more than 1 solution is found)
+        function countSolutions(grid, counter = { count: 0 }) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (grid[r][c] === 0) {
+                        for (let num = 1; num <= 9; num++) {
+                            if (isValid(grid, r, c, num)) {
+                                grid[r][c] = num;
+                                countSolutions(grid, counter);
+                                grid[r][c] = 0;
+                                if (counter.count >= 2) return 2; // Non-unique branch found
+                            }
+                        }
+                        return counter.count;
+                    }
+                }
+            }
+            counter.count++;
+            return counter.count;
+        }
+
+        // Generate a puzzle with a strictly verified single solution
+        function generateUniquePuzzle() {
+            // 1. Create a complete, valid solved board
+            boardSolution = Array.from({ length: 9 }, () => Array(9).fill(0));
+            fillBoardRandomly(boardSolution);
+
+            // 2. Clone board for cell removal
+            currentBoard = boardSolution.map(row => [...row]);
+
+            const diff = document.getElementById("difficulty").value;
+            // Target removals: easy (~32 empty), medium (~45 empty), hard (~52 empty)
+            let targetRemovals = 32;
+            if (diff === "medium") targetRemovals = 45;
+            if (diff === "hard") targetRemovals = 52;
+
+            // 3. Shuffle all 81 coordinates
+            let coords = [];
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    coords.push([r, c]);
+                }
+            }
+            coords.sort(() => Math.random() - 0.5);
+
+            // 4. Remove cells one-by-one, testing for solution uniqueness
+            let removedCount = 0;
+            for (let [r, c] of coords) {
+                if (removedCount >= targetRemovals) break;
+
+                const backup = currentBoard[r][c];
+                currentBoard[r][c] = 0;
+
+                // Deep copy to pass to solver
+                const testGrid = currentBoard.map(row => [...row]);
+                const solutions = countSolutions(testGrid, { count: 0 });
+
+                if (solutions !== 1) {
+                    // Restoring digit because removing it introduces ambiguity
+                    currentBoard[r][c] = backup;
+                } else {
+                    removedCount++;
+                }
+            }
+
+            // Record which cells are fixed starting clues
+            initialMask = currentBoard.map(row => row.map(val => val !== 0));
+        }
+
+        /* --- GAME ENGINE & UI --- */
+
         function startTimer() {
-            clearInterval(timerInterval); 
+            clearInterval(timerInterval);
             secondsElapsed = 0;
             updateTimerDisplay();
             timerInterval = setInterval(() => {
@@ -277,40 +374,14 @@
             document.getElementById("timer").textContent = `Time: ${mins}:${secs}`;
         }
 
-        function generatePuzzle() {
-            const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-            const shuffled = [...nums].sort(() => Math.random() - 0.5);
-            const mapping = {};
-            nums.forEach((n, i) => mapping[n] = shuffled[i]);
-
-            boardSolution = SOLUTION.map(row => row.map(val => mapping[val]));
-            
-            const diff = document.getElementById("difficulty").value;
-            let missingCount = 30;
-            if (diff === "medium") missingCount = 45;
-            if (diff === "hard") missingCount = 55;
-
-            currentBoard = boardSolution.map(row => [...row]);
-            
-            let removed = 0;
-            while (removed < missingCount) {
-                const r = Math.floor(Math.random() * 9);
-                const c = Math.floor(Math.random() * 9);
-                if (currentBoard[r][c] !== 0) {
-                    currentBoard[r][c] = 0;
-                    removed++;
-                }
-            }
-        }
-
         function setupGame() {
             errors = 0;
             selectedCell = null;
             document.getElementById("errors").textContent = `Errors: ${errors} / ${maxErrors}`;
-            
-            generatePuzzle();
-            startTimer(); 
-            
+           
+            generateUniquePuzzle();
+            startTimer();
+           
             const boardContainer = document.getElementById("board");
             boardContainer.innerHTML = "";
 
@@ -321,7 +392,7 @@
                     cell.dataset.row = r;
                     cell.dataset.col = c;
 
-                    if (currentBoard[r][c] !== 0) {
+                    if (initialMask[r][c]) {
                         cell.textContent = currentBoard[r][c];
                         cell.classList.add("initial");
                     }
@@ -344,6 +415,8 @@
             const r = parseInt(selectedCell.dataset.row);
             const c = parseInt(selectedCell.dataset.col);
 
+            if (initialMask[r][c]) return;
+
             if (value === 0) {
                 selectedCell.textContent = "";
                 selectedCell.classList.remove("error");
@@ -351,6 +424,7 @@
                 return;
             }
 
+            // Checked against the single logically valid solution
             if (boardSolution[r][c] === value) {
                 selectedCell.textContent = value;
                 selectedCell.classList.remove("error");
@@ -361,11 +435,11 @@
                 selectedCell.classList.add("error");
                 errors++;
                 document.getElementById("errors").textContent = `Errors: ${errors} / ${maxErrors}`;
-                
+               
                 if (errors >= maxErrors) {
-                    stopTimer(); 
+                    stopTimer();
                     setTimeout(() => {
-                        alert("Game Over! Try starting a new puzzle.");
+                        alert("Game Over! 3 errors reached. Generating a new puzzle.");
                         setupGame();
                     }, 100);
                 }
@@ -378,8 +452,11 @@
                     if (currentBoard[r][c] !== boardSolution[r][c]) return;
                 }
             }
-            stopTimer(); 
-            setTimeout(() => alert(`🎉 Congratulations! You solved the puzzle in ${document.getElementById("timer").textContent.replace("Time: ", "")}!`), 150);
+            stopTimer();
+            setTimeout(() => {
+                const timeTaken = document.getElementById("timer").textContent.replace("Time: ", "");
+                alert(`🎉 Congratulations! You solved the puzzle with a unique solution in ${timeTaken}!`);
+            }, 150);
         }
     </script>
 </body>
