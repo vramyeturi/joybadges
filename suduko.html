@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Sudoku Game</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-dark: #333333;
+            --border-light: #ccc;
+            --selected-bg: #bbdefb;
+            --error-bg: #ffcdd2;
+            --error-text: #c62828;
+            --primary-color: #1976d2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .game-container {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 15px;
+            font-size: 2rem;
+        }
+
+        .controls, .status-panel {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+
+        select, button {
+            padding: 8px 12px;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            outline: none;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            flex-grow: 1;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #errors, #timer {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* 9x9 Board Styling */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border: 3px solid var(--border-dark);
+            margin-bottom: 20px;
+            background-color: var(--border-dark);
+            gap: 1px;
+        }
+
+        /* Individual Grid Cells */
+        .cell {
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(12px + 1.5vw);
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* 3x3 Grid Box Thickness Boundaries */
+        .cell:nth-child(3n) { border-right: 2px solid var(--border-dark); }
+        .cell:nth-child(9n) { border-right: none; }
+        #board > .cell:nth-child(n+19):nth-child(-n+27),
+        #board > .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 2px solid var(--border-dark);
+        }
+
+        .cell.initial {
+            background-color: #f5f5f5;
+            color: #555;
+        }
+
+        .cell.selected {
+            background-color: var(--selected-bg);
+        }
+
+        .cell.error {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            animation: shake 0.2s ease-in-out;
+        }
+
+        /* Input Digits Panel */
+        #digits {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+
+        .digit {
+            background-color: #e0e0e0;
+            padding: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .digit:active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .digit.erase {
+            background-color: #d32f2f;
+            color: white;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        @media (min-width: 480px) {
+            .cell {
+                font-size: 1.5rem;
+            }
+            #digits {
+                grid-template-columns: repeat(10, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Sudoku</h1>
+        
+        <div class="controls">
+            <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+            <button id="new-game-btn">New Game</button>
+        </div>
+
+        <div class="status-panel">
+            <div id="errors">Errors: 0 / 3</div>
+            <div id="timer">Time: 00:00</div>
+        </div>
+
+        <!-- The 9x9 Grid Container -->
+        <div id="board"></div>
+
+        <!-- Mobile-friendly Digit Selector -->
+        <div id="digits">
+            <div class="digit" data-value="1">1</div>
+            <div class="digit" data-value="2">2</div>
+            <div class="digit" data-value="3">3</div>
+            <div class="digit" data-value="4">4</div>
+            <div class="digit" data-value="5">5</div>
+            <div class="digit" data-value="6">6</div>
+            <div class="digit" data-value="7">7</div>
+            <div class="digit" data-value="8">8</div>
+            <div class="digit" data-value="9">9</div>
+            <div class="digit erase" data-value="0">⌫</div>
+        </div>
+    </div>
+
+    <script>
+        const SOLUTION = [
+            [5, 3, 4, 6, 7, 8, 9, 1, 2],
+            [6, 7, 2, 1, 9, 5, 3, 4, 8],
+            [1, 9, 8, 3, 4, 2, 5, 6, 7],
+            [8, 5, 9, 7, 6, 1, 4, 2, 3],
+            [4, 2, 6, 8, 5, 3, 7, 9, 1],
+            [7, 1, 3, 9, 2, 4, 8, 5, 6],
+            [9, 6, 1, 5, 3, 7, 2, 8, 4],
+            [2, 8, 7, 4, 1, 9, 6, 3, 5],
+            [3, 4, 5, 2, 8, 6, 1, 7, 9]
+        ];
+
+        let boardSolution = [];
+        let currentBoard = [];
+        let selectedCell = null;
+        let errors = 0;
+        const maxErrors = 3;
+
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            setupGame();
+            
+            document.getElementById("new-game-btn").addEventListener("click", setupGame);
+            
+            document.addEventListener("keydown", (e) => {
+                if (!selectedCell || selectedCell.classList.contains("initial")) return;
+                if (e.key >= 1 && e.key <= 9) {
+                    handleInput(parseInt(e.key));
+                } else if (e.key === "Backspace" || e.key === "Delete") {
+                    handleInput(0);
+                }
+            });
+
+            document.querySelectorAll(".digit").forEach(digit => {
+                digit.addEventListener("click", () => {
+                    if (!selectedCell || selectedCell.classList.contains("initial")) return;
+                    const val = parseInt(digit.getAttribute("data-value"));
+                    handleInput(val);
+                });
+            });
+        });
+
+        function startTimer() {
+            clearInterval(timerInterval); 
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById("timer").textContent = `Time: ${mins}:${secs}`;
+        }
+
+        function generatePuzzle() {
+            const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            const shuffled = [...nums].sort(() => Math.random() - 0.5);
+            const mapping = {};
+            nums.forEach((n, i) => mapping[n] = shuffled[i]);
+
+            boardSolution = SOLUTION.map(row => row.map(val => mapping[val]));
+            
+            const diff = document.getElementById("difficulty").value;
+            let missingCount = 30;
+            if (diff === "medium") missingCount = 45;
+            if (diff === "hard") missingCount = 55;
+
+            currentBoard = boardSolution.map(row => [...row]);
+            
+            let removed = 0;
+            while (removed < missingCount) {
+                const r = Math.floor(Math.random() * 9);
+                const c = Math.floor(Math.random() * 9);
+                if (currentBoard[r][c] !== 0) {
+                    currentBoard[r][c] = 0;
+                    removed++;
+                }
+            }
+        }
+
+        function setupGame() {
+            errors = 0;
+            selectedCell = null;
+            document.getElementById("errors").textContent = `Errors: ${errors} / ${maxErrors}`;
+            
+            generatePuzzle();
+            startTimer(); 
+            
+            const boardContainer = document.getElementById("board");
+            boardContainer.innerHTML = "";
+
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+
+                    if (currentBoard[r][c] !== 0) {
+                        cell.textContent = currentBoard[r][c];
+                        cell.classList.add("initial");
+                    }
+
+                    cell.addEventListener("click", () => selectTile(cell));
+                    boardContainer.appendChild(cell);
+                }
+            }
+        }
+
+        function selectTile(cell) {
+            if (selectedCell) {
+                selectedCell.classList.remove("selected");
+            }
+            selectedCell = cell;
+            selectedCell.classList.add("selected");
+        }
+
+        function handleInput(value) {
+            const r = parseInt(selectedCell.dataset.row);
+            const c = parseInt(selectedCell.dataset.col);
+
+            if (value === 0) {
+                selectedCell.textContent = "";
+                selectedCell.classList.remove("error");
+                currentBoard[r][c] = 0;
+                return;
+            }
+
+            if (boardSolution[r][c] === value) {
+                selectedCell.textContent = value;
+                selectedCell.classList.remove("error");
+                currentBoard[r][c] = value;
+                checkWin();
+            } else {
+                selectedCell.textContent = value;
+                selectedCell.classList.add("error");
+                errors++;
+                document.getElementById("errors").textContent = `Errors: ${errors} / ${maxErrors}`;
+                
+                if (errors >= maxErrors) {
+                    stopTimer(); 
+                    setTimeout(() => {
+                        alert("Game Over! Try starting a new puzzle.");
+                        setupGame();
+                    }, 100);
+                }
+            }
+        }
+
+        function checkWin() {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (currentBoard[r][c] !== boardSolution[r][c]) return;
+                }
+            }
+            stopTimer(); 
+            setTimeout(() => alert(`🎉 Congratulations! You solved the puzzle in ${document.getElementById("timer").textContent.replace("Time: ", "")}!`), 150);
+        }
+    </script>
+</body>
+</html>
